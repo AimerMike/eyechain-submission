@@ -44,20 +44,20 @@ export default function TransactionHistory({ contract, address }: Props) {
   useEffect(() => { fetchHistory(); }, [contract, address]);
 
   return (
-    <DashboardPanel title="Transaction History" tag="06 · History" tagColor="cyan">
+    <DashboardPanel title="Transaction History" titleCn="交易历史" tag="06 · History 历史" tagColor="cyan">
       {events.length === 0 ? (
-        <p className="text-muted-foreground font-mono text-sm">{address ? "No events recorded yet" : "Connect wallet to view history"}</p>
+        <p className="text-muted-foreground font-mono text-sm">{address ? "No events recorded yet 暂无记录" : "Connect wallet to view history 连接钱包查看历史"}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border">
                 <th className="text-left font-mono text-xs text-muted-foreground py-2">#</th>
-                <th className="text-left font-mono text-xs text-muted-foreground py-2">TIME</th>
-                <th className="text-left font-mono text-xs text-muted-foreground py-2">RISK</th>
-                <th className="text-left font-mono text-xs text-muted-foreground py-2">ACCEL</th>
-                <th className="text-left font-mono text-xs text-muted-foreground py-2">POSTURE</th>
-                <th className="text-left font-mono text-xs text-muted-foreground py-2">SYMPTOMS</th>
+                <th className="text-left font-mono text-xs text-muted-foreground py-2">TIME 时间</th>
+                <th className="text-left font-mono text-xs text-muted-foreground py-2">RISK 风险</th>
+                <th className="text-left font-mono text-xs text-muted-foreground py-2">ACCEL 加速</th>
+                <th className="text-left font-mono text-xs text-muted-foreground py-2">POSTURE 姿态</th>
+                <th className="text-left font-mono text-xs text-muted-foreground py-2">SYMPTOMS 症状</th>
               </tr>
             </thead>
             <tbody>
@@ -75,7 +75,7 @@ export default function TransactionHistory({ contract, address }: Props) {
                     </td>
                     <td className="py-2 text-foreground">{e.accelLoad}</td>
                     <td className="py-2 text-foreground">{e.postureLoad}</td>
-                    <td className="py-2 text-muted-foreground text-xs">{symList.length > 0 ? symList.join(", ") : "—"}</td>
+                    <td className="py-2 text-muted-foreground text-xs">{symList.length > 0 ? symList.join(", ") : "— 无"}</td>
                   </tr>
                 );
               })}
@@ -84,7 +84,7 @@ export default function TransactionHistory({ contract, address }: Props) {
         </div>
       )}
       <button onClick={fetchHistory} disabled={loading || !address} className="mt-4 px-4 py-2 rounded-lg font-mono text-xs tracking-wider uppercase border border-primary/50 text-primary hover:bg-primary/10 transition-all disabled:opacity-50">
-        {loading ? "Loading..." : "Refresh History"}
+        {loading ? "Loading... 加载中..." : "Refresh History 刷新历史"}
       </button>
     </DashboardPanel>
   );
