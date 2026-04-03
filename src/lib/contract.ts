@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 
 // Replace with your deployed contract address on Avalanche Fuji
-export const CONTRACT_ADDRESS = "0x0000000000000000000000000000000000000000";
+export const CONTRACT_ADDRESS = "0xf523f4a5fFc4C1fA4Aa75169754ffFcB51c34f81";
 
 export const FUJI_CHAIN_ID = "0xa869"; // 43113
 export const FUJI_RPC = "https://api.avax-test.network/ext/bc/C/rpc";
