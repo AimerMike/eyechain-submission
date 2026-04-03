@@ -1,16 +1,73 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useWallet } from "@/lib/useWallet";
+import ConnectWallet from "@/components/ConnectWallet";
+import UserRegistration from "@/components/UserRegistration";
+import SubmitRiskEvent from "@/components/SubmitRiskEvent";
+import HealthDataOverview from "@/components/HealthDataOverview";
+import DataSharing from "@/components/DataSharing";
+import DataAccessRequests from "@/components/DataAccessRequests";
+import TransactionHistory from "@/components/TransactionHistory";
+import AdminControls from "@/components/AdminControls";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const NAV_ITEMS = [
+  "Connect", "Register", "Risk Event", "Overview", "Sharing", "Requests", "History", "Admin"
+];
+
+export default function Index() {
+  const { address, contract, loading, connect } = useWallet();
+
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="min-h-screen bg-background">
+      {/* Sticky nav */}
+      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
+          {NAV_ITEMS.map((item, i) => (
+            <button
+              key={item}
+              onClick={() => scrollTo(`section-${i}`)}
+              className="font-mono text-xs px-3 py-1.5 rounded border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap tracking-wider uppercase"
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </nav>
+
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        <div id="section-0">
+          <ConnectWallet address={address} loading={loading} onConnect={connect} />
+        </div>
+        <div id="section-1">
+          <UserRegistration contract={contract} address={address} />
+        </div>
+        <div id="section-2">
+          <SubmitRiskEvent contract={contract} address={address} />
+        </div>
+        <div id="section-3">
+          <HealthDataOverview contract={contract} address={address} />
+        </div>
+        <div id="section-4">
+          <DataSharing address={address} />
+        </div>
+        <div id="section-5">
+          <DataAccessRequests address={address} />
+        </div>
+        <div id="section-6">
+          <TransactionHistory contract={contract} address={address} />
+        </div>
+        <div id="section-7">
+          <AdminControls contract={contract} address={address} />
+        </div>
+
+        <footer className="mt-12 border-t border-border/50 pt-6 pb-8 text-center">
+          <p className="font-mono text-xs text-muted-foreground tracking-widest">
+            EYECHAIN · AVALANCHE FUJI TESTNET · v2025.HACKATHON.v1
+          </p>
+        </footer>
+      </main>
     </div>
   );
-};
-
-const Index = PlaceholderIndex;
-
-export default Index;
+}
