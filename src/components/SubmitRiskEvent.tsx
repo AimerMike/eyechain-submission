@@ -159,7 +159,8 @@ export default function SubmitRiskEvent({ contract, address, onRiskSubmitted }: 
   const labelClass = "flex items-center font-mono text-xs text-muted-foreground tracking-wider uppercase mb-1.5";
   const checkClass = "w-4 h-4 accent-cyan rounded";
 
-  const alertLevel = riskScore !== null ? (riskScore >= 85 ? "CRITICAL" : riskScore >= 70 ? "WARNING" : "NORMAL") : null;
+  // FMEA thresholds: multiplication makes mid-range scores more meaningful
+  const alertLevel = riskScore !== null ? (riskScore >= 70 ? "CRITICAL" : riskScore >= 40 ? "WARNING" : "NORMAL") : null;
 
   return (
     <DashboardPanel title="Submit Risk Event" titleCn="提交风险事件" tag="02 · Risk Event 风险事件" tagColor="magenta">
