@@ -11,11 +11,13 @@ import TransactionHistory from "@/components/TransactionHistory";
 import AdminControls from "@/components/AdminControls";
 import RiskMonitoringDiagram from "@/components/RiskMonitoringDiagram";
 import EducationalContext from "@/components/EducationalContext";
+import HealthWisdomCenter from "@/components/HealthWisdomCenter";
+import MedicalLog from "@/components/MedicalLog";
 
 const NAV_ITEMS = [
   "Connect 连接", "Register 注册", "Risk 风险", "Overview 概览",
-  "Share 共享", "Requests 请求", "History 历史", "Admin 管理",
-  "Algorithm 算法", "Learn 学习",
+  "Monetize 变现", "Requests 请求", "History 历史", "Admin 管理",
+  "Algorithm 算法", "Learn 学习", "Wiki 百科", "Log 日志",
 ];
 
 export default function Index() {
@@ -53,13 +55,15 @@ export default function Index() {
         <div id="section-7"><AdminControls contract={contract} address={address} /></div>
         <div id="section-8"><RiskMonitoringDiagram /></div>
         <div id="section-9"><EducationalContext /></div>
+        <div id="section-10"><HealthWisdomCenter lastSubmission={lastSubmission} /></div>
+        <div id="section-11"><MedicalLog /></div>
 
         <footer className="mt-12 border-t border-border/50 pt-6 pb-8 text-center">
           <p className="font-mono text-xs text-muted-foreground tracking-widest">
-            EYECHAIN · AVALANCHE FUJI TESTNET · v2026.MAINNET.v1
+            EYECHAIN · AVALANCHE FUJI TESTNET · v2026.SUSTAIN.v1
           </p>
           <p className="font-mono text-xs text-muted-foreground tracking-wider mt-1">
-            眼链 · 雪崩 Fuji 测试网 · v2026.主网.v1
+            眼链 · 雪崩 Fuji 测试网 · v2026.可持续.v1
           </p>
         </footer>
       </main>
