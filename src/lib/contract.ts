@@ -1,7 +1,7 @@
 import { ethers } from "ethers";
 
 // 1. 最新部署的合约地址 (Avalanche Fuji)
-export const CONTRACT_ADDRESS = "0xE779bF709C04ca64C81D6dd675C9235F6DA2Fe58";
+export const CONTRACT_ADDRESS = "0x97DD4789ceF455A084d75ddC1E553aDC95D2a323";
 
 // 2. 完整的、格式正确的 ABI
 export const CONTRACT_ABI = [
