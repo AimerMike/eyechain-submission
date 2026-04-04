@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ethers } from "ethers";
 import DashboardPanel from "./DashboardPanel";
-import { FUJI_EXPLORER, symptomsToFlag } from "@/lib/contract";
+import { FUJI_CHAIN_ID, FUJI_EXPLORER, clampUint8, ensureContractMethod, hasContractMethod, symptomsToFlag } from "@/lib/contract";
 
 interface Props {
   contract: ethers.Contract | null;
@@ -20,7 +20,10 @@ export default function SubmitRiskEvent({ contract, address }: Props) {
   const [location, setLocation] = useState("");
   const [txHash, setTxHash] = useState("");
   const [riskScore, setRiskScore] = useState<number | null>(null);
+  const [statusMessage, setStatusMessage] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const riskEventSupported = hasContractMethod(contract, "submitRiskEvent");
 
   const computeLocalRisk = () => {
     return Math.round((25 * accel + 20 * posture + 20 * duration + 25 * 50 + 10 * symptomsToFlag(floaters, flashes, pain, visionLoss)) / 100);
@@ -28,18 +31,44 @@ export default function SubmitRiskEvent({ contract, address }: Props) {
 
   const handleSubmit = async () => {
     if (!contract || !address) return alert("Connect wallet first / 请先连接钱包");
+
     setLoading(true);
+    setStatusMessage("");
+
     try {
+      const currentContract = ensureContractMethod(contract, "submitRiskEvent", "Risk Event");
+      const network = await contract.provider.getNetwork();
+
+      if (Number(network.chainId) !== FUJI_CHAIN_ID) {
+        throw new Error("Please switch MetaMask to Avalanche Fuji (43113) / 请切换 MetaMask 到 Avalanche Fuji (43113)");
+      }
+
+      if (hasContractMethod(contract, "registeredUsers")) {
+        const isRegistered = await (contract as any).registeredUsers(address);
+        if (!isRegistered) {
+          throw new Error("Please complete registration first / 请先完成注册");
+        }
+      }
+
       const symptoms = symptomsToFlag(floaters, flashes, pain, visionLoss);
-      const tx = await contract.submitRiskEvent(accel, posture, duration, symptoms);
+      const tx = await currentContract.submitRiskEvent(
+        clampUint8(accel, 0, 100),
+        clampUint8(posture, 0, 100),
+        clampUint8(duration, 0, 100),
+        symptoms,
+      );
+
       setTxHash(tx.hash);
       const receipt = await tx.wait();
       const score = computeLocalRisk();
       setRiskScore(score);
+      setStatusMessage("Risk event submitted successfully / 风险事件提交成功");
       console.log("Risk event submitted, receipt:", receipt);
     } catch (err: any) {
       console.error(err);
-      alert(err.reason || err.message || "Submission failed / 提交失败");
+      const message = err.reason || err.data?.message || err.message || "Submission failed / 提交失败";
+      setStatusMessage(message);
+      alert(message);
     } finally {
       setLoading(false);
     }
@@ -53,6 +82,12 @@ export default function SubmitRiskEvent({ contract, address }: Props) {
 
   return (
     <DashboardPanel title="Submit Risk Event" titleCn="提交风险事件" tag="02 · Risk Event 风险事件" tagColor="magenta">
+      {!riskEventSupported && address && (
+        <div className="mb-4 p-3 bg-amber/10 border border-amber/30 rounded-lg">
+          <p className="font-mono text-xs text-amber">Current deployed contract ABI does not include submitRiskEvent<br/>当前已部署合约 ABI 未包含 submitRiskEvent 函数</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
           <label className={labelClass}>Acceleration Load<br/>加速度负荷</label>
@@ -69,7 +104,7 @@ export default function SubmitRiskEvent({ contract, address }: Props) {
       </div>
 
       <div className="mt-4">
-        <label className={labelClass}>Symptoms 症状</label>
+        <label className={labelClass}>Symptoms<br/>症状</label>
         <div className="flex flex-wrap gap-5 mt-2">
           {[
             { label: "Floaters 飞蚊症", checked: floaters, set: setFloaters },
@@ -96,7 +131,13 @@ export default function SubmitRiskEvent({ contract, address }: Props) {
         </div>
       </div>
 
-      <button onClick={handleSubmit} disabled={loading || !address} className="mt-5 w-full py-3 rounded-lg font-mono text-sm tracking-wider uppercase border border-magenta/50 bg-magenta/10 text-magenta hover:bg-magenta/20 transition-all disabled:opacity-50">
+      {statusMessage && (
+        <div className="mt-4 p-3 bg-muted rounded-lg">
+          <p className="font-mono text-xs text-muted-foreground break-words">{statusMessage}</p>
+        </div>
+      )}
+
+      <button onClick={handleSubmit} disabled={loading || !address || !riskEventSupported} className="mt-5 w-full py-3 rounded-lg font-mono text-sm tracking-wider uppercase border border-magenta/50 bg-magenta/10 text-magenta hover:bg-magenta/20 transition-all disabled:opacity-50">
         {loading ? "Submitting... 提交中..." : "Submit Risk Event 提交风险事件"}
       </button>
 
