@@ -67,8 +67,20 @@ export default function SubmitRiskEvent({ contract, address, onRiskSubmitted }: 
 
   const riskEventSupported = hasContractMethod(contract, "submitRiskEvent");
 
+  // FMEA-based RPN: Risk Priority Number = Severity × Occurrence × Detection
+  // Each factor is normalized to 1-10 scale, then multiplied → max RPN = 1000
+  // Final score mapped to 0-100 for display
   const computeLocalRisk = () => {
-    return Math.round((25 * accel + 20 * posture + 20 * duration + 25 * 50 + 10 * symptomsToFlag(floaters, flashes, pain, visionLoss)) / 100);
+    const normalize = (v: number) => Math.max(1, Math.round((v / 100) * 10));
+    const severity = normalize(accel);       // Acceleration → Severity
+    const occurrence = normalize(duration);   // Duration → Occurrence (longer = more frequent exposure)
+    const detection = normalize(posture);     // Posture → Detection difficulty
+    const symptomFlag = symptomsToFlag(floaters, flashes, pain, visionLoss);
+    const symptomMultiplier = 1 + (symptomFlag / 15) * 0.5; // up to 1.5x
+
+    const rpn = severity * occurrence * detection * symptomMultiplier;
+    // Map RPN (1–1500) to 0–100 score
+    return Math.min(100, Math.round((rpn / 1000) * 100));
   };
 
   const simulateProcessing = async (score: number) => {
