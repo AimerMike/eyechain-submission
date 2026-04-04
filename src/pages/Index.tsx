@@ -63,7 +63,7 @@ export default function Index() {
             EYECHAIN · AVALANCHE FUJI TESTNET · v2026.SUSTAIN.v1
           </p>
           <p className="font-mono text-xs text-muted-foreground tracking-wider mt-1">
-            眼链 · 雪崩 Fuji 测试网 · v2026.可持续.v1
+            眼链 · 雪崩 Fuji 测试网 · v2026.SUSTAIN.v1
           </p>
         </footer>
       </main>
