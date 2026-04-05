@@ -1,13 +1,21 @@
-import { shortenAddress } from "@/lib/contract";
+import { ethers } from "ethers";
+import { shortenAddress, hasContractMethod } from "@/lib/contract";
 import heroImage from "@/assets/eyechain-hero.jpg";
+import { Activity } from "lucide-react";
 
 interface Props {
   address: string | null;
   loading: boolean;
   onConnect: () => void;
+  riskContract?: ethers.Contract | null;
+  dataRewardsContract?: ethers.Contract | null;
 }
 
-export default function ConnectWallet({ address, loading, onConnect }: Props) {
+export default function ConnectWallet({ address, loading, onConnect, riskContract, dataRewardsContract }: Props) {
+  const riskLive = hasContractMethod(riskContract, "submitRiskEvent");
+  const rewardsLive = hasContractMethod(dataRewardsContract, "claimReward");
+  const anyLive = riskLive || rewardsLive;
+
   return (
     <div className="border-glow bg-card rounded-lg overflow-hidden mb-5 animate-fade-in-up">
       <div className="relative h-48 overflow-hidden">
@@ -19,23 +27,52 @@ export default function ConnectWallet({ address, loading, onConnect }: Props) {
           <p className="font-mono text-xs text-muted-foreground tracking-wider mt-0.5">// 去中心化视觉风险智能协议</p>
         </div>
       </div>
-      <div className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <p className="text-muted-foreground text-sm font-mono">AVALANCHE FUJI TESTNET · CHAIN ID: 43113</p>
-          <p className="text-muted-foreground text-xs font-mono">雪崩 Fuji 测试网 · 链 ID: 43113</p>
-          {address && (
-            <p className="text-primary font-mono mt-1 text-sm">
-              Connected 已连接: <span className="text-foreground">{shortenAddress(address)}</span>
-            </p>
-          )}
+      <div className="p-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div>
+            <p className="text-muted-foreground text-sm font-mono">AVALANCHE FUJI TESTNET · CHAIN ID: 43113</p>
+            <p className="text-muted-foreground text-xs font-mono">雪崩 Fuji 测试网 · 链 ID: 43113</p>
+            {address && (
+              <p className="text-primary font-mono mt-1 text-sm">
+                Connected 已连接: <span className="text-foreground">{shortenAddress(address)}</span>
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onConnect}
+            disabled={loading || !!address}
+            className="px-6 py-3 rounded-lg font-mono text-sm tracking-wider uppercase border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 hover:glow-cyan transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? "Connecting... 连接中..." : address ? "✓ Connected 已连接" : "Connect MetaMask 连接钱包"}
+          </button>
         </div>
-        <button
-          onClick={onConnect}
-          disabled={loading || !!address}
-          className="px-6 py-3 rounded-lg font-mono text-sm tracking-wider uppercase border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 hover:glow-cyan transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? "Connecting... 连接中..." : address ? "✓ Connected 已连接" : "Connect MetaMask 连接钱包"}
-        </button>
+
+        {/* Market Status Indicator */}
+        {address && (
+          <div className="mt-4 flex items-center gap-4 p-3 bg-muted rounded-lg border border-border">
+            <div className="flex items-center gap-2">
+              <Activity className="w-4 h-4 text-primary" />
+              <span className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">PROTOCOL STATUS</span>
+            </div>
+            <div className="flex items-center gap-3 ml-auto">
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${riskLive ? "bg-neon-green animate-pulse" : "bg-amber"}`} />
+                <span className="font-mono text-[10px] text-muted-foreground">Risk Engine</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className={`w-2 h-2 rounded-full ${rewardsLive ? "bg-neon-green animate-pulse" : "bg-amber"}`} />
+                <span className="font-mono text-[10px] text-muted-foreground">Rewards</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
+                <span className="font-mono text-[10px] text-muted-foreground">UserMgmt</span>
+              </div>
+              <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${anyLive ? "text-neon-green border-neon-green/30" : "text-amber border-amber/30"}`}>
+                {anyLive ? "LIVE" : "PARTIAL"}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

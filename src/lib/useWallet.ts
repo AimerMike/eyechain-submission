@@ -1,6 +1,13 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { ethers } from "ethers";
-import { connectWallet, getContract } from "./contract";
+import {
+  connectWallet,
+  getContract,
+  getRiskContract,
+  getDataRewardsContract,
+  RISK_MGMT_ADDRESS,
+  DATA_REWARDS_ADDRESS,
+} from "./contract";
 
 export function useWallet() {
   const [address, setAddress] = useState<string | null>(null);
@@ -23,7 +30,15 @@ export function useWallet() {
     }
   }, []);
 
-  const contract = signer ? getContract(signer) : null;
+  const contract = useMemo(() => (signer ? getContract(signer) : null), [signer]);
+  const riskContract = useMemo(
+    () => (signer && RISK_MGMT_ADDRESS ? getRiskContract(signer, RISK_MGMT_ADDRESS) : null),
+    [signer],
+  );
+  const dataRewardsContract = useMemo(
+    () => (signer && DATA_REWARDS_ADDRESS ? getDataRewardsContract(signer, DATA_REWARDS_ADDRESS) : null),
+    [signer],
+  );
 
-  return { address, signer, contract, loading, connect };
+  return { address, signer, contract, riskContract, dataRewardsContract, loading, connect };
 }
