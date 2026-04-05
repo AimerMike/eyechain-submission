@@ -16,6 +16,9 @@ export const FUJI_CONFIG = {
 // ─── Contract Addresses ───────────────────────────────────────────────────────
 export const USER_MGMT_ADDRESS = "0x97DD4789ceF455A084d75ddC1E553aDC95D2a323";
 export const CONTRACT_ADDRESS = USER_MGMT_ADDRESS; // backward compat
+// Set these when RiskManagement & DataSharingAndRewards are deployed on Fuji
+export const RISK_MGMT_ADDRESS = ""; // e.g. "0x..." after deployment
+export const DATA_REWARDS_ADDRESS = ""; // e.g. "0x..." after deployment
 
 // ─── UserManagement ABI (8-param registerUser) ────────────────────────────────
 export const CONTRACT_ABI = [

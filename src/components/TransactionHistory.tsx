@@ -5,6 +5,7 @@ import { flagToSymptoms, hasContractMethod } from "@/lib/contract";
 
 interface Props {
   contract: ethers.Contract | null;
+  riskContract: ethers.Contract | null;
   address: string | null;
 }
 
@@ -15,16 +16,17 @@ interface RiskEvent {
   durationScore: number;
   symptomsFlag: number;
   totalRisk: number;
+  activityType?: string;
   simulated?: boolean;
 }
 
 const MOCK_EVENTS: RiskEvent[] = [
-  { timestamp: Date.now() / 1000 - 86400, accelLoad: 35, postureLoad: 65, durationScore: 40, symptomsFlag: 3, totalRisk: 52, simulated: true },
-  { timestamp: Date.now() / 1000 - 172800, accelLoad: 90, postureLoad: 85, durationScore: 65, symptomsFlag: 5, totalRisk: 78, simulated: true },
-  { timestamp: Date.now() / 1000 - 259200, accelLoad: 10, postureLoad: 10, durationScore: 10, symptomsFlag: 0, totalRisk: 22, simulated: true },
+  { timestamp: Date.now() / 1000 - 86400, accelLoad: 35, postureLoad: 65, durationScore: 40, symptomsFlag: 3, totalRisk: 52, activityType: "Screen Work", simulated: true },
+  { timestamp: Date.now() / 1000 - 172800, accelLoad: 90, postureLoad: 85, durationScore: 65, symptomsFlag: 5, totalRisk: 78, activityType: "Exercise", simulated: true },
+  { timestamp: Date.now() / 1000 - 259200, accelLoad: 10, postureLoad: 10, durationScore: 10, symptomsFlag: 0, totalRisk: 22, activityType: "Reading", simulated: true },
 ];
 
-export default function TransactionHistory({ contract, address }: Props) {
+export default function TransactionHistory({ contract, riskContract, address }: Props) {
   const [events, setEvents] = useState<RiskEvent[]>([]);
   const [supported, setSupported] = useState(false);
   const [message, setMessage] = useState("");
@@ -32,36 +34,39 @@ export default function TransactionHistory({ contract, address }: Props) {
   const [useMock, setUseMock] = useState(false);
 
   const fetchHistory = async () => {
-    if (!contract || !address) return;
+    if (!address) return;
 
     setLoading(true);
     setMessage("");
 
     try {
-      if (!hasContractMethod(contract, "getHistory")) {
-        setSupported(false);
-        setUseMock(true);
-        setEvents(MOCK_EVENTS);
-        setMessage("Simulation Mode — getHistory not in current ABI. Demo data shown.\n模拟模式 — 当前 ABI 不包含 getHistory。显示演示数据。");
+      // Try RiskManagement contract first (has getUserHistory)
+      if (riskContract && hasContractMethod(riskContract, "getUserHistory")) {
+        setSupported(true);
+        setUseMock(false);
+        const history = await (riskContract as any).getUserHistory(address);
+        const normalized = history.map((e: any) => ({
+          timestamp: Number(e.timestamp),
+          accelLoad: Number(e.accelLoad),
+          postureLoad: Number(e.postureLoad),
+          durationScore: Number(e.durationScore),
+          symptomsFlag: Number(e.symptomsFlag),
+          totalRisk: Number(e.totalRisk),
+          activityType: e.activityType || "",
+        })).reverse();
+
+        setEvents(normalized);
+        if (normalized.length === 0) {
+          setMessage("No events recorded yet / 暂无风险事件记录");
+        }
         return;
       }
 
-      setSupported(true);
-      setUseMock(false);
-      const history = await (contract as any).getHistory(address);
-      const normalized = history.map((e: any) => ({
-        timestamp: Number(e.timestamp),
-        accelLoad: Number(e.accelLoad),
-        postureLoad: Number(e.postureLoad),
-        durationScore: Number(e.durationScore),
-        symptomsFlag: Number(e.symptomsFlag),
-        totalRisk: Number(e.totalRisk),
-      })).reverse();
-
-      setEvents(normalized);
-      if (normalized.length === 0) {
-        setMessage("No events recorded yet / 暂无风险事件记录");
-      }
+      // Fallback to mock data
+      setSupported(false);
+      setUseMock(true);
+      setEvents(MOCK_EVENTS);
+      setMessage("RiskManagement contract not deployed — demo data shown. Deploy contract for on-chain history.\nRiskManagement 合约未部署 — 显示演示数据。部署合约以获取链上历史。");
     } catch (err: any) {
       console.error("Failed to fetch history:", err);
       setUseMock(true);
@@ -73,13 +78,13 @@ export default function TransactionHistory({ contract, address }: Props) {
   };
 
   useEffect(() => {
-    if (!contract || !address) {
+    if (!address) {
       setEvents([]);
       setMessage("");
       return;
     }
     fetchHistory();
-  }, [contract, address]);
+  }, [riskContract, address]);
 
   return (
     <DashboardPanel title="Transaction History" titleCn="交易历史" tag="06 · History 历史" tagColor="cyan">
@@ -107,6 +112,7 @@ export default function TransactionHistory({ contract, address }: Props) {
                     <th className="text-left font-mono text-xs text-muted-foreground py-2">RISK 风险</th>
                     <th className="text-left font-mono text-xs text-muted-foreground py-2">ACCEL 加速</th>
                     <th className="text-left font-mono text-xs text-muted-foreground py-2">POSTURE 姿态</th>
+                    <th className="text-left font-mono text-xs text-muted-foreground py-2">ACTIVITY 活动</th>
                     <th className="text-left font-mono text-xs text-muted-foreground py-2">SYMPTOMS 症状</th>
                   </tr>
                 </thead>
@@ -126,6 +132,7 @@ export default function TransactionHistory({ contract, address }: Props) {
                         </td>
                         <td className="py-2 text-foreground">{e.accelLoad}</td>
                         <td className="py-2 text-foreground">{e.postureLoad}</td>
+                        <td className="py-2 text-muted-foreground text-xs">{e.activityType || "—"}</td>
                         <td className="py-2 text-muted-foreground text-xs">{symList.length > 0 ? symList.join(", ") : "— 无"}</td>
                       </tr>
                     );

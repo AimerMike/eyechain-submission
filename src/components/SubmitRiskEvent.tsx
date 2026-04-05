@@ -6,6 +6,7 @@ import { Info, Clock } from "lucide-react";
 
 interface Props {
   contract: ethers.Contract | null;
+  riskContract: ethers.Contract | null;
   address: string | null;
   onRiskSubmitted?: (data: RiskSubmission) => void;
 }
@@ -67,7 +68,7 @@ function getDefaultTimestamp() {
   return now.toISOString().slice(0, 16);
 }
 
-export default function SubmitRiskEvent({ contract, address, onRiskSubmitted }: Props) {
+export default function SubmitRiskEvent({ contract, riskContract, address, onRiskSubmitted }: Props) {
   const [accel, setAccel] = useState(10);
   const [posture, setPosture] = useState(10);
   const [duration, setDuration] = useState(10);
@@ -83,7 +84,8 @@ export default function SubmitRiskEvent({ contract, address, onRiskSubmitted }: 
   const [loading, setLoading] = useState(false);
   const [simulating, setSimulating] = useState(false);
 
-  const riskEventSupported = hasContractMethod(contract, "submitRiskEvent");
+  // Check if RiskManagement contract is available with submitRiskEvent
+  const riskEventSupported = hasContractMethod(riskContract, "submitRiskEvent");
 
   // FMEA RPN: S × O × D × SymptomMultiplier → mapped 0-100
   const computeLocalRisk = () => {
@@ -131,10 +133,10 @@ export default function SubmitRiskEvent({ contract, address, onRiskSubmitted }: 
       const symptoms = symptomsToFlag(floaters, flashes, pain, visionLoss);
       const score = computeLocalRisk();
 
-      if (riskEventSupported) {
-        // 6-parameter submitRiskEvent matching RiskManagement.sol
-        const currentContract = ensureContractMethod(contract, "submitRiskEvent", "Risk Event");
-        const tx = await currentContract.submitRiskEvent(
+      if (riskEventSupported && riskContract) {
+        // Use the dedicated RiskManagement contract for submitRiskEvent
+        const rc = ensureContractMethod(riskContract, "submitRiskEvent", "Risk Event");
+        const tx = await rc.submitRiskEvent(
           clampUint8(accel, 0, 100),
           clampUint8(posture, 0, 100),
           clampUint8(duration, 0, 100),
@@ -145,7 +147,7 @@ export default function SubmitRiskEvent({ contract, address, onRiskSubmitted }: 
         setTxHash(tx.hash);
         await tx.wait();
       } else {
-        setStatusMessage("Contract does not support submitRiskEvent — running local simulation\n合约不支持 submitRiskEvent — 执行本地模拟");
+        setStatusMessage("RiskManagement contract not deployed — running local FMEA simulation\nRiskManagement 合约未部署 — 执行本地 FMEA 模拟");
         await new Promise(r => setTimeout(r, 500));
       }
 
@@ -170,7 +172,7 @@ export default function SubmitRiskEvent({ contract, address, onRiskSubmitted }: 
     <DashboardPanel title="Submit Risk Event" titleCn="提交风险事件" tag="02 · Risk Event 风险事件" tagColor="magenta">
       {!riskEventSupported && address && (
         <div className="mb-4 p-3 bg-amber/10 border border-amber/30 rounded-lg">
-          <p className="font-mono text-xs text-amber">Contract ABI missing submitRiskEvent — local simulation mode active<br/>合约 ABI 缺少 submitRiskEvent — 已启用本地模拟模式</p>
+          <p className="font-mono text-xs text-amber">RiskManagement contract not deployed — local FMEA simulation active. Deploy contract to enable on-chain recording.<br/>RiskManagement 合约未部署 — 本地 FMEA 模拟已激活。部署合约以启用链上记录。</p>
         </div>
       )}
 

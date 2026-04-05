@@ -1,17 +1,22 @@
 import { useState, useRef } from "react";
+import { ethers } from "ethers";
 import DashboardPanel from "./DashboardPanel";
 import type { RiskSubmission } from "./SubmitRiskEvent";
+import { hasContractMethod } from "@/lib/contract";
 import { motion } from "framer-motion";
-import { Info, CheckCircle, AlertTriangle, Building2, User, TrendingUp, ArrowDown, Coins, ShieldCheck } from "lucide-react";
+import { Info, CheckCircle, AlertTriangle, Building2, User, TrendingUp, ArrowDown, Coins, ShieldCheck, Zap } from "lucide-react";
 
 interface Props {
   address: string | null;
   lastSubmission?: RiskSubmission | null;
+  dataRewardsContract?: ethers.Contract | null;
 }
 
 interface ShareRecord {
   hash: string;
-  reward: number;
+  baseReward: number;
+  riskPremium: number;
+  totalReward: number;
   timestamp: number;
   targets: string[];
   riskScore: number;
@@ -32,7 +37,7 @@ const stagger = {
   }),
 };
 
-export default function DataSharing({ address, lastSubmission }: Props) {
+export default function DataSharing({ address, lastSubmission, dataRewardsContract }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("user");
   const [shareMedical, setShareMedical] = useState(false);
   const [shareResearch, setShareResearch] = useState(false);
@@ -52,6 +57,8 @@ export default function DataSharing({ address, lastSubmission }: Props) {
   const [userPool] = useState(8.75);
   const [purchaseCount, setPurchaseCount] = useState(10);
 
+  const rewardsContractLive = hasContractMethod(dataRewardsContract, "claimReward");
+
   const selectedTargets = [
     ...(shareMedical ? ["Medical 医疗"] : []),
     ...(shareResearch ? ["Research 研究"] : []),
@@ -62,6 +69,12 @@ export default function DataSharing({ address, lastSubmission }: Props) {
   const isValidSubmission = (s: RiskSubmission | null): boolean => {
     if (!s) return false;
     return s.accel > 0 && s.posture > 0 && s.duration > 0;
+  };
+
+  const computeRewardBreakdown = (riskScore: number, targets: string[]) => {
+    const baseReward = targets.length * 0.001; // Base Compensation per target
+    const riskPremium = (riskScore / 100) * 0.005; // Risk Premium proportional to RPN
+    return { baseReward, riskPremium, totalReward: baseReward + riskPremium };
   };
 
   const handleShare = async () => {
@@ -81,18 +94,17 @@ export default function DataSharing({ address, lastSubmission }: Props) {
         return;
       }
       await new Promise(r => setTimeout(r, 1500));
-      // RPN-based dynamic reward: higher risk = more valuable data
-      const riskBonus = (lastSubmission!.riskScore / 100) * 0.005;
-      const reward = selectedTargets.length * 0.001 + riskBonus;
+
+      const { baseReward, riskPremium, totalReward } = computeRewardBreakdown(lastSubmission!.riskScore, selectedTargets);
       sharedHashesRef.current.add(targetKey);
-      setClaimableRewards(prev => prev + reward);
+      setClaimableRewards(prev => prev + totalReward);
       setHistory(prev => [
-        { hash: targetKey.slice(0, 16), reward, timestamp: Date.now(), targets: selectedTargets, riskScore: lastSubmission!.riskScore },
+        { hash: targetKey.slice(0, 16), baseReward, riskPremium, totalReward, timestamp: Date.now(), targets: selectedTargets, riskScore: lastSubmission!.riskScore },
         ...prev,
       ]);
       setFeedback({
         type: "success",
-        message: `Data encrypted and sold to Research Node. Reward verified by eye-chain protocol.\n数据已加密并出售给研究节点。奖励已由 eye-chain 协议验证。\n+${reward.toFixed(4)} EyeToken (Claimable 待领取)`,
+        message: `Data encrypted and sold to Research Node. Reward verified by eye-chain protocol.\n数据已加密并出售给研究节点。奖励已由 eye-chain 协议验证。\n\nBase Compensation 基础报酬: +${baseReward.toFixed(4)} ETK\nRisk Premium (RPN:${lastSubmission!.riskScore}) 风险溢价: +${riskPremium.toFixed(4)} ETK\nTotal 合计: +${totalReward.toFixed(4)} EyeToken (Claimable 待领取)`,
       });
     } catch (err: any) {
       setFeedback({ type: "error", message: err.message || "Monetization failed / 变现失败" });
@@ -104,11 +116,22 @@ export default function DataSharing({ address, lastSubmission }: Props) {
   const handleClaim = async () => {
     if (claimableRewards <= 0) return;
     setClaiming(true);
-    await new Promise(r => setTimeout(r, 1200));
-    setRewardBalance(prev => prev + claimableRewards);
-    setClaimableRewards(0);
-    setFeedback({ type: "success", message: `Claimed ${claimableRewards.toFixed(4)} EyeToken successfully!\n成功领取 ${claimableRewards.toFixed(4)} EyeToken！` });
-    setClaiming(false);
+    try {
+      if (rewardsContractLive && dataRewardsContract) {
+        const tx = await (dataRewardsContract as any).claimReward();
+        await tx.wait();
+      } else {
+        await new Promise(r => setTimeout(r, 1200));
+      }
+      setRewardBalance(prev => prev + claimableRewards);
+      const claimed = claimableRewards;
+      setClaimableRewards(0);
+      setFeedback({ type: "success", message: `Claimed ${claimed.toFixed(4)} EyeToken successfully!\n成功领取 ${claimed.toFixed(4)} EyeToken！` });
+    } catch (err: any) {
+      setFeedback({ type: "error", message: err.reason || err.message || "Claim failed" });
+    } finally {
+      setClaiming(false);
+    }
   };
 
   const checkClass = "w-4 h-4 accent-cyan rounded";
@@ -140,6 +163,21 @@ export default function DataSharing({ address, lastSubmission }: Props) {
             <div className="bg-muted rounded-lg p-4">
               <p className="font-mono text-[10px] text-muted-foreground tracking-wider">DATA ACCESSED 已访问数据</p>
               <p className="font-heading text-2xl font-bold text-foreground mt-1">{dataAccessCount} <span className="text-sm text-muted-foreground">records</span></p>
+            </div>
+          </div>
+
+          {/* Market Liquidity Indicator */}
+          <div className="bg-muted rounded-lg p-4 border border-primary/20">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-primary animate-pulse" />
+              <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">MARKET LIQUIDITY 市场流动性</p>
+            </div>
+            <div className="h-2 rounded-full bg-card overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-primary to-neon-green rounded-full transition-all" style={{ width: "72%" }} />
+            </div>
+            <div className="flex justify-between mt-1.5">
+              <span className="font-mono text-[10px] text-muted-foreground">72% Funded 已注资</span>
+              <span className="font-mono text-[10px] text-neon-green">Healthy 健康</span>
             </div>
           </div>
 
@@ -207,6 +245,16 @@ export default function DataSharing({ address, lastSubmission }: Props) {
             <br />将您的眼健康数据变现。机构支付代币 — 70% 作为数据变现分红流向您。
           </p>
 
+          {/* Market Liquidity Status */}
+          <div className="mb-4 flex items-center gap-2 p-2.5 bg-muted rounded-lg border border-border">
+            <Zap className="w-3.5 h-3.5 text-primary animate-pulse" />
+            <span className="font-mono text-[10px] text-muted-foreground tracking-wider">INSTITUTIONAL FUNDING 机构注资:</span>
+            <div className="flex-1 h-1.5 rounded-full bg-card overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-primary to-neon-green rounded-full" style={{ width: "72%" }} />
+            </div>
+            <span className="font-mono text-[10px] text-neon-green">72%</span>
+          </div>
+
           <div className="space-y-3 mb-5">
             {[
               { checked: shareMedical, set: setShareMedical, label: "Medical Institutions 医疗机构", desc: "Hospitals & clinics pay for clinical analysis data / 医院和诊所付费获取临床分析数据" },
@@ -223,7 +271,7 @@ export default function DataSharing({ address, lastSubmission }: Props) {
             ))}
           </div>
 
-          {/* Balances */}
+          {/* Balances with Reward Breakdown */}
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="bg-muted rounded-lg p-3">
               <p className="font-mono text-[10px] text-muted-foreground">CLAIMED 已领取</p>
@@ -273,19 +321,23 @@ export default function DataSharing({ address, lastSubmission }: Props) {
             </div>
           )}
 
-          {/* Reward History with DateTime + RPN */}
+          {/* Reward History with Breakdown */}
           {history.length > 0 && (
             <div className="mt-4">
               <p className="font-mono text-xs text-muted-foreground mb-2">RECENT SALES 最近销售记录</p>
-              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              <div className="space-y-1.5 max-h-48 overflow-y-auto">
                 {history.map((r, i) => (
-                  <div key={i} className="flex items-center justify-between bg-muted/50 rounded px-3 py-2 text-xs font-mono">
-                    <div>
+                  <div key={i} className="bg-muted/50 rounded px-3 py-2.5 text-xs font-mono">
+                    <div className="flex items-center justify-between mb-1">
                       <span className="text-muted-foreground">{new Date(r.timestamp).toLocaleString()}</span>
-                      <span className="ml-2 text-primary">RPN:{r.riskScore}</span>
+                      <span className="text-neon-green font-bold">+{r.totalReward.toFixed(4)} ETK</span>
                     </div>
-                    <span className="text-foreground text-[10px]">{r.targets.join(", ")}</span>
-                    <span className="text-neon-green">+{r.reward.toFixed(4)}</span>
+                    <div className="flex items-center gap-3 text-[10px]">
+                      <span className="text-primary">RPN:{r.riskScore}</span>
+                      <span className="text-muted-foreground">Base: {r.baseReward.toFixed(4)}</span>
+                      <span className="text-amber">Premium: {r.riskPremium.toFixed(4)}</span>
+                      <span className="text-muted-foreground ml-auto">{r.targets.join(", ")}</span>
+                    </div>
                   </div>
                 ))}
               </div>
