@@ -4,7 +4,6 @@ import DashboardPanel from "./DashboardPanel";
 import { flagToSymptoms, hasContractMethod } from "@/lib/contract";
 
 interface Props {
-  contract: ethers.Contract | null;
   riskContract: ethers.Contract | null;
   address: string | null;
 }
@@ -20,18 +19,11 @@ interface RiskEvent {
   simulated?: boolean;
 }
 
-const MOCK_EVENTS: RiskEvent[] = [
-  { timestamp: Date.now() / 1000 - 86400, accelLoad: 35, postureLoad: 65, durationScore: 40, symptomsFlag: 3, totalRisk: 52, activityType: "Screen Work", simulated: true },
-  { timestamp: Date.now() / 1000 - 172800, accelLoad: 90, postureLoad: 85, durationScore: 65, symptomsFlag: 5, totalRisk: 78, activityType: "Exercise", simulated: true },
-  { timestamp: Date.now() / 1000 - 259200, accelLoad: 10, postureLoad: 10, durationScore: 10, symptomsFlag: 0, totalRisk: 22, activityType: "Reading", simulated: true },
-];
 
-export default function TransactionHistory({ contract, riskContract, address }: Props) {
+export default function TransactionHistory({ riskContract, address }: Props) {
   const [events, setEvents] = useState<RiskEvent[]>([]);
-  const [supported, setSupported] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [useMock, setUseMock] = useState(false);
 
   const fetchHistory = async () => {
     if (!address) return;
@@ -40,10 +32,7 @@ export default function TransactionHistory({ contract, riskContract, address }: 
     setMessage("");
 
     try {
-      // Try RiskManagement contract first (has getUserHistory)
       if (riskContract && hasContractMethod(riskContract, "getUserHistory")) {
-        setSupported(true);
-        setUseMock(false);
         const history = await (riskContract as any).getUserHistory(address);
         const normalized = history.map((e: any) => ({
           timestamp: Number(e.timestamp),
@@ -62,16 +51,13 @@ export default function TransactionHistory({ contract, riskContract, address }: 
         return;
       }
 
-      // Fallback to mock data
-      setSupported(false);
-      setUseMock(true);
-      setEvents(MOCK_EVENTS);
-      setMessage("RiskManagement contract not deployed — demo data shown. Deploy contract for on-chain history.\nRiskManagement 合约未部署 — 显示演示数据。部署合约以获取链上历史。");
+      // No riskContract or no getUserHistory method
+      setEvents([]);
+      setMessage("RiskManagement not deployed — on-chain history unavailable\nRiskManagement 合约未部署 — 链上历史不可用");
     } catch (err: any) {
       console.error("Failed to fetch history:", err);
-      setUseMock(true);
-      setEvents(MOCK_EVENTS);
-      setMessage("Fallback to demo data due to error / 因错误回退至演示数据");
+      setEvents([]);
+      setMessage("Failed to fetch on-chain history / 获取链上历史失败: " + (err.reason || err.message || ""));
     } finally {
       setLoading(false);
     }
@@ -92,9 +78,9 @@ export default function TransactionHistory({ contract, riskContract, address }: 
         <p className="text-muted-foreground font-mono text-sm">Connect wallet to view history<br/>连接钱包查看历史</p>
       ) : (
         <>
-          {useMock && (
+          {message && !events.length && (
             <div className="mb-3 p-3 bg-amber/10 border border-amber/30 rounded-lg">
-              <p className="font-mono text-xs text-amber">{message}</p>
+              <p className="font-mono text-xs text-amber whitespace-pre-line">{message}</p>
             </div>
           )}
 

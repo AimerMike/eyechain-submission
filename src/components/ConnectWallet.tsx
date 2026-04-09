@@ -7,14 +7,17 @@ interface Props {
   address: string | null;
   loading: boolean;
   onConnect: () => void;
+  userContract?: ethers.Contract | null;
   riskContract?: ethers.Contract | null;
   dataRewardsContract?: ethers.Contract | null;
 }
 
-export default function ConnectWallet({ address, loading, onConnect, riskContract, dataRewardsContract }: Props) {
+export default function ConnectWallet({ address, loading, onConnect, userContract, riskContract, dataRewardsContract }: Props) {
+  const userLive = hasContractMethod(userContract, "registeredUsers");
   const riskLive = hasContractMethod(riskContract, "submitRiskEvent");
   const rewardsLive = hasContractMethod(dataRewardsContract, "claimReward");
-  const anyLive = riskLive || rewardsLive;
+  const allLive = userLive && riskLive && rewardsLive;
+  const anyLive = userLive || riskLive || rewardsLive;
 
   return (
     <div className="border-glow bg-card rounded-lg overflow-hidden mb-5 animate-fade-in-up">
@@ -64,11 +67,11 @@ export default function ConnectWallet({ address, loading, onConnect, riskContrac
                 <span className="font-mono text-[10px] text-muted-foreground">Rewards</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-neon-green animate-pulse" />
+                <span className={`w-2 h-2 rounded-full ${userLive ? "bg-neon-green animate-pulse" : "bg-amber"}`} />
                 <span className="font-mono text-[10px] text-muted-foreground">UserMgmt</span>
               </div>
-              <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${anyLive ? "text-neon-green border-neon-green/30" : "text-amber border-amber/30"}`}>
-                {anyLive ? "LIVE" : "PARTIAL"}
+              <span className={`font-mono text-[10px] px-2 py-0.5 rounded border ${allLive ? "text-neon-green border-neon-green/30" : anyLive ? "text-amber border-amber/30" : "text-destructive border-destructive/30"}`}>
+                {allLive ? "LIVE" : anyLive ? "PARTIAL" : "OFFLINE"}
               </span>
             </div>
           </div>

@@ -30,7 +30,8 @@ export function useWallet() {
     }
   }, []);
 
-  const contract = useMemo(() => (signer ? getContract(signer) : null), [signer]);
+  // Three separate contract instances — never mix them
+  const userContract = useMemo(() => (signer ? getContract(signer) : null), [signer]);
   const riskContract = useMemo(
     () => (signer && RISK_MGMT_ADDRESS ? getRiskContract(signer, RISK_MGMT_ADDRESS) : null),
     [signer],
@@ -40,5 +41,5 @@ export function useWallet() {
     [signer],
   );
 
-  return { address, signer, contract, riskContract, dataRewardsContract, loading, connect };
+  return { address, signer, userContract, riskContract, dataRewardsContract, loading, connect };
 }

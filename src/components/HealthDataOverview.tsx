@@ -122,11 +122,6 @@ export default function HealthDataOverview({ contract, address }: Props) {
             </div>
           )}
 
-          {!hasContractMethod(contract, "getHistory") && (
-            <div className="mb-4 p-3 bg-amber/10 border border-amber/30 rounded-lg">
-              <p className="font-mono text-xs text-amber">Current ABI does not include risk history queries<br/>当前 ABI 未包含风险历史查询函数</p>
-            </div>
-          )}
 
           <button onClick={fetchData} disabled={loading} className="px-4 py-2 rounded-lg font-mono text-xs tracking-wider uppercase border border-neon-green/50 bg-neon-green/10 text-neon-green hover:bg-neon-green/20 transition-all disabled:opacity-50">
             {loading ? "Loading... 加载中..." : "Refresh Data 刷新数据"}
