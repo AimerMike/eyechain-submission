@@ -21,7 +21,7 @@ const NAV_ITEMS = [
 ];
 
 export default function Index() {
-  const { address, contract, riskContract, dataRewardsContract, loading, connect } = useWallet();
+  const { address, userContract, riskContract, dataRewardsContract, loading, connect } = useWallet();
   const [lastSubmission, setLastSubmission] = useState<RiskSubmission | null>(null);
 
   const scrollTo = (id: string) => {
@@ -45,14 +45,14 @@ export default function Index() {
       </nav>
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        <div id="section-0"><ConnectWallet address={address} loading={loading} onConnect={connect} riskContract={riskContract} dataRewardsContract={dataRewardsContract} /></div>
-        <div id="section-1"><UserRegistration contract={contract} address={address} /></div>
-        <div id="section-2"><SubmitRiskEvent contract={contract} riskContract={riskContract} address={address} onRiskSubmitted={setLastSubmission} /></div>
-        <div id="section-3"><HealthDataOverview contract={contract} address={address} /></div>
+        <div id="section-0"><ConnectWallet address={address} loading={loading} onConnect={connect} userContract={userContract} riskContract={riskContract} dataRewardsContract={dataRewardsContract} /></div>
+        <div id="section-1"><UserRegistration contract={userContract} address={address} /></div>
+        <div id="section-2"><SubmitRiskEvent contract={userContract} riskContract={riskContract} address={address} onRiskSubmitted={setLastSubmission} /></div>
+        <div id="section-3"><HealthDataOverview contract={userContract} address={address} /></div>
         <div id="section-4"><DataSharing address={address} lastSubmission={lastSubmission} dataRewardsContract={dataRewardsContract} /></div>
         <div id="section-5"><DataAccessRequests address={address} /></div>
-        <div id="section-6"><TransactionHistory riskContract={riskContract} contract={contract} address={address} /></div>
-        <div id="section-7"><AdminControls contract={contract} address={address} /></div>
+        <div id="section-6"><TransactionHistory riskContract={riskContract} address={address} /></div>
+        <div id="section-7"><AdminControls contract={userContract} address={address} /></div>
         <div id="section-8"><RiskMonitoringDiagram /></div>
         <div id="section-9"><EducationalContext /></div>
         <div id="section-10"><HealthWisdomCenter lastSubmission={lastSubmission} /></div>
