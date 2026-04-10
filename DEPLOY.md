@@ -28,13 +28,22 @@
    - `rewardToken`: use zero address `0x0000000000000000000000000000000000000000` for native AVAX mode, or an ERC20 address
 3. Deploy and copy the deployed address
 
+## Deploy EvidenceRewards via Remix
+
+1. Upload `contracts/EvidenceRewards.sol`
+2. Constructor args:
+   - `admin`: your wallet address
+3. Deploy and copy the deployed address
+4. Fund the contract with AVAX so it can pay out rewards
+
 ## Update Frontend
 
-Edit `src/lib/contract.ts` lines 20-21:
+Edit `src/lib/contract.ts` lines 20-22:
 
 ```ts
 export const RISK_MGMT_ADDRESS = "0xYOUR_RISK_CONTRACT_ADDRESS";
 export const DATA_REWARDS_ADDRESS = "0xYOUR_REWARDS_CONTRACT_ADDRESS";
+export const EVIDENCE_REWARDS_ADDRESS = "0xYOUR_EVIDENCE_CONTRACT_ADDRESS";
 ```
 
 Once both addresses are set, the Protocol Status indicator will show **LIVE** instead of **PARTIAL**.
