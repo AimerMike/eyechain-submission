@@ -13,15 +13,16 @@ import RiskMonitoringDiagram from "@/components/RiskMonitoringDiagram";
 import EducationalContext from "@/components/EducationalContext";
 import HealthWisdomCenter from "@/components/HealthWisdomCenter";
 import MedicalLog from "@/components/MedicalLog";
+import EvidenceRewards from "@/components/EvidenceRewards";
 
 const NAV_ITEMS = [
   "Connect 连接", "Register 注册", "Risk 风险", "Overview 概览",
   "Monetize 变现", "Requests 请求", "History 历史", "Admin 管理",
-  "Algorithm 算法", "Learn 学习", "Wiki 百科", "Log 日志",
+  "Algorithm 算法", "Learn 学习", "Wiki 百科", "Log 日志", "Evidence 证据",
 ];
 
 export default function Index() {
-  const { address, userContract, riskContract, dataRewardsContract, loading, connect } = useWallet();
+  const { address, userContract, riskContract, dataRewardsContract, evidenceContract, loading, connect } = useWallet();
   const [lastSubmission, setLastSubmission] = useState<RiskSubmission | null>(null);
 
   const scrollTo = (id: string) => {
@@ -57,6 +58,7 @@ export default function Index() {
         <div id="section-9"><EducationalContext /></div>
         <div id="section-10"><HealthWisdomCenter lastSubmission={lastSubmission} /></div>
         <div id="section-11"><MedicalLog /></div>
+        <div id="section-12"><EvidenceRewards address={address} evidenceContract={evidenceContract} /></div>
 
         <footer className="mt-12 border-t border-border/50 pt-6 pb-8 text-center">
           <p className="font-mono text-xs text-muted-foreground tracking-widest">

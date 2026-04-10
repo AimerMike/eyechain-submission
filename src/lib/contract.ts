@@ -19,6 +19,7 @@ export const CONTRACT_ADDRESS = USER_MGMT_ADDRESS; // backward compat
 // Set these when RiskManagement & DataSharingAndRewards are deployed on Fuji
 export const RISK_MGMT_ADDRESS = ""; // e.g. "0x..." after deployment
 export const DATA_REWARDS_ADDRESS = ""; // e.g. "0x..." after deployment
+export const EVIDENCE_REWARDS_ADDRESS = ""; // e.g. "0x..." after deployment
 
 // ─── UserManagement ABI (8-param registerUser) ────────────────────────────────
 export const CONTRACT_ABI = [
@@ -297,6 +298,95 @@ export const getDataRewardsContract = (signerOrProvider?: ethers.Signer | ethers
   if (!address) return null;
   const connection = signerOrProvider ?? getProvider();
   return new ethers.Contract(address, DATA_REWARDS_ABI, connection);
+};
+
+// ─── EvidenceRewards ABI ──────────────────────────────────────────────────────
+export const EVIDENCE_REWARDS_ABI = [
+  {
+    inputs: [{ internalType: "uint8", name: "_privacy", type: "uint8" }],
+    name: "register",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint8", name: "_privacy", type: "uint8" }],
+    name: "setPrivacyMode",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "bytes32", name: "_contentHash", type: "bytes32" },
+      { internalType: "uint8", name: "_dataClass", type: "uint8" },
+      { internalType: "string", name: "_metadataURI", type: "string" },
+      { internalType: "bool", name: "_shareConsent", type: "bool" },
+    ],
+    name: "submitEvidence",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      { internalType: "uint256", name: "_evidenceId", type: "uint256" },
+      { internalType: "bool", name: "_approved", type: "bool" },
+      { internalType: "uint256", name: "_rewardWei", type: "uint256" },
+    ],
+    name: "appraiseEvidence",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "claim",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "refundBond",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "contributors",
+    outputs: [
+      { internalType: "bool", name: "registered", type: "bool" },
+      { internalType: "uint8", name: "privacy", type: "uint8" },
+      { internalType: "uint256", name: "bondDeposit", type: "uint256" },
+      { internalType: "uint256", name: "claimableReward", type: "uint256" },
+      { internalType: "uint256", name: "totalClaimed", type: "uint256" },
+      { internalType: "uint256", name: "registeredAt", type: "uint256" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "_user", type: "address" }],
+    name: "getUserEvidenceIds",
+    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "_user", type: "address" }],
+    name: "getUserEvidenceCount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+];
+
+export const getEvidenceRewardsContract = (signerOrProvider?: ethers.Signer | ethers.providers.Provider | null, address?: string) => {
+  if (!address) return null;
+  const connection = signerOrProvider ?? getProvider();
+  return new ethers.Contract(address, EVIDENCE_REWARDS_ABI, connection);
 };
 
 // ─── Display helpers ──────────────────────────────────────────────────────────

@@ -5,8 +5,10 @@ import {
   getContract,
   getRiskContract,
   getDataRewardsContract,
+  getEvidenceRewardsContract,
   RISK_MGMT_ADDRESS,
   DATA_REWARDS_ADDRESS,
+  EVIDENCE_REWARDS_ADDRESS,
 } from "./contract";
 
 export function useWallet() {
@@ -40,6 +42,10 @@ export function useWallet() {
     () => (signer && DATA_REWARDS_ADDRESS ? getDataRewardsContract(signer, DATA_REWARDS_ADDRESS) : null),
     [signer],
   );
+  const evidenceContract = useMemo(
+    () => (signer && EVIDENCE_REWARDS_ADDRESS ? getEvidenceRewardsContract(signer, EVIDENCE_REWARDS_ADDRESS) : null),
+    [signer],
+  );
 
-  return { address, signer, userContract, riskContract, dataRewardsContract, loading, connect };
+  return { address, signer, userContract, riskContract, dataRewardsContract, evidenceContract, loading, connect };
 }
