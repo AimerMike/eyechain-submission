@@ -2,22 +2,22 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 
-/**
- * @title MockUSDC
- * @dev Testnet-only mock stablecoin for development.
- *      Not for production use.
- */
-contract MockUSDC is ERC20 {
-    constructor() ERC20("Mock USDC", "mUSDC") {
-        _mint(msg.sender, 1_000_000 * 10 ** decimals());
+contract MockUSDC is ERC20, AccessControl {
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+
+    constructor(address admin) ERC20("Mock USDC", "mUSDC") {
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(MINTER_ROLE, admin);
+        _mint(admin, 1_000_000 * 10 ** decimals());
     }
 
     function decimals() public pure override returns (uint8) {
         return 6;
     }
 
-    function mint(address to, uint256 amount) external {
+    function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
         _mint(to, amount);
     }
 }
