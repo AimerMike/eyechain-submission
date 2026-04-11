@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 // 直接通过 GitHub 路径引用你仓库中的依赖，解决 Remix 本地路径报错
-import "github.com/AimerMike/eyechain-pulse/contracts/UserManagement.sol";
-import "github.com/AimerMike/eyechain-pulse/contracts/RiskManagement.sol";
+import "./UserManagement.sol";
+import "./RiskManagement.sol";
 
 /**
  * @title DataSharingAndRewards
