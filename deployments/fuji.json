@@ -1,0 +1,15 @@
+{
+  "network": "fuji",
+  "chainId": 43113,
+  "deployer": "0xf523f4a5fFc4C1fA4Aa75169754ffFcB51c34f81",
+  "addresses": {
+    "mockUsdc": "0x173847429F41C96CBce0CEaA33D0C4992582623a",
+    "evidenceRewards": "0xe2A84590643C4EB2c7cD1dDB922D96c47a8E7Ce4",
+    "cohortExchange": "0x74736A22796826ed5DF59f6B14913a22172b8011",
+    "recoveryMissions": "0x55D2Fb2773120340ED7Ff77Dc7d14833Ff8d785b",
+    "treasury": "0xf523f4a5fFc4C1fA4Aa75169754ffFcB51c34f81",
+    "reserveVault": "0xf523f4a5fFc4C1fA4Aa75169754ffFcB51c34f81"
+  },
+  "registerBondWei": "100000000000",
+  "bootstrapRewardPool": "500000000"
+}

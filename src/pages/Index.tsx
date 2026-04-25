@@ -1,73 +1,148 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useWallet } from "@/lib/useWallet";
-import ConnectWallet from "@/components/ConnectWallet";
+import { shortenAddress } from "@/lib/contract";
+import SystemBanner from "@/components/SystemBanner";
+import FrontendReadiness from "@/components/FrontendReadiness";
 import UserRegistration from "@/components/UserRegistration";
-import SubmitRiskEvent from "@/components/SubmitRiskEvent";
-import type { RiskSubmission } from "@/components/SubmitRiskEvent";
-import HealthDataOverview from "@/components/HealthDataOverview";
-import DataSharing from "@/components/DataSharing";
-import DataAccessRequests from "@/components/DataAccessRequests";
-import TransactionHistory from "@/components/TransactionHistory";
-import AdminControls from "@/components/AdminControls";
-import RiskMonitoringDiagram from "@/components/RiskMonitoringDiagram";
-import EducationalContext from "@/components/EducationalContext";
-import HealthWisdomCenter from "@/components/HealthWisdomCenter";
-import MedicalLog from "@/components/MedicalLog";
-import EvidenceRewards from "@/components/EvidenceRewards";
-
-const NAV_ITEMS = [
-  "Connect 连接", "Register 注册", "Risk 风险", "Overview 概览",
-  "Monetize 变现", "Requests 请求", "History 历史", "Admin 管理",
-  "Algorithm 算法", "Learn 学习", "Wiki 百科", "Log 日志", "Evidence 证据",
-];
+import PrivacySettings from "@/components/PrivacySettings";
+import EvidenceUpload from "@/components/EvidenceUpload";
+import RewardsPanel from "@/components/RewardsPanel";
 
 export default function Index() {
-  const { address, userContract, riskContract, dataRewardsContract, evidenceContract, loading, connect } = useWallet();
-  const [lastSubmission, setLastSubmission] = useState<RiskSubmission | null>(null);
+  const {
+    account,
+    chainId,
+    isFuji,
+    connectWallet,
+    switchToFuji,
+    evidenceRewardsContract,
+  } = useWallet();
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-  };
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = () => setRefreshKey((v) => v + 1);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex gap-2 overflow-x-auto">
-          {NAV_ITEMS.map((item, i) => (
-            <button
-              key={item}
-              onClick={() => scrollTo(`section-${i}`)}
-              className="font-mono text-xs px-3 py-1.5 rounded border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap tracking-wider uppercase"
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div>
+            <p className="font-heading text-2xl tracking-wider">EYECHAIN</p>
+            <p className="font-mono text-xs text-muted-foreground tracking-widest">
+              Fuji M1 Contributor Flow · 注册 / 上传 / 奖励
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <Link
+              to="/m2"
+              className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap"
             >
-              {item}
-            </button>
-          ))}
+              M2 Cohort
+            </Link>
+
+            <Link
+              to="/m3"
+              className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap"
+            >
+              M3 Missions
+            </Link>
+
+            <Link
+              to="/rework"
+              className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap"
+            >
+              Rework V2
+            </Link>
+
+            <Link
+              to="/legacy"
+              className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap"
+            >
+              Legacy Dashboard
+            </Link>
+
+            <div className="text-right min-w-[88px]">
+              <p className="font-mono text-[10px] text-muted-foreground tracking-widest">
+                NETWORK
+              </p>
+              <p
+                className={`font-mono text-xs ${
+                  isFuji ? "text-primary" : "text-destructive"
+                }`}
+              >
+                {chainId ? `Chain ${chainId}` : "Not connected"}
+              </p>
+            </div>
+
+            {!account ? (
+              <button
+                onClick={connectWallet}
+                className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-all whitespace-nowrap"
+              >
+                Connect Wallet
+              </button>
+            ) : !isFuji ? (
+              <div className="flex items-center gap-2">
+                <div className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground whitespace-nowrap">
+                  {shortenAddress(account)}
+                </div>
+                <button
+                  onClick={switchToFuji}
+                  className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all whitespace-nowrap"
+                >
+                  Switch to Fuji
+                </button>
+              </div>
+            ) : (
+              <div className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-primary/50 bg-primary/10 text-primary whitespace-nowrap">
+                {shortenAddress(account)}
+              </div>
+            )}
+          </div>
         </div>
       </nav>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
-        <div id="section-0"><ConnectWallet address={address} loading={loading} onConnect={connect} userContract={userContract} riskContract={riskContract} dataRewardsContract={dataRewardsContract} /></div>
-        <div id="section-1"><UserRegistration contract={userContract} address={address} /></div>
-        <div id="section-2"><SubmitRiskEvent contract={userContract} riskContract={riskContract} address={address} onRiskSubmitted={setLastSubmission} /></div>
-        <div id="section-3"><HealthDataOverview contract={userContract} address={address} /></div>
-        <div id="section-4"><DataSharing address={address} lastSubmission={lastSubmission} dataRewardsContract={dataRewardsContract} /></div>
-        <div id="section-5"><DataAccessRequests address={address} /></div>
-        <div id="section-6"><TransactionHistory riskContract={riskContract} address={address} /></div>
-        <div id="section-7"><AdminControls contract={userContract} address={address} /></div>
-        <div id="section-8"><RiskMonitoringDiagram /></div>
-        <div id="section-9"><EducationalContext /></div>
-        <div id="section-10"><HealthWisdomCenter lastSubmission={lastSubmission} /></div>
-        <div id="section-11"><MedicalLog /></div>
-        <div id="section-12"><EvidenceRewards address={address} evidenceContract={evidenceContract} /></div>
+      <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+        <SystemBanner />
 
-        <footer className="mt-12 border-t border-border/50 pt-6 pb-8 text-center">
-          <p className="font-mono text-xs text-muted-foreground tracking-widest">
-            EYECHAIN · AVALANCHE FUJI TESTNET · v2026.SUSTAIN.v1
-          </p>
-          <p className="font-mono text-xs text-muted-foreground tracking-wider mt-1">
-            眼链 · 雪崩 Fuji 测试网 · v2026.SUSTAIN.v1
-          </p>
-        </footer>
+        <FrontendReadiness
+          address={account}
+          isFuji={isFuji}
+          contract={evidenceRewardsContract}
+        />
+
+        <UserRegistration
+          address={account}
+          isFuji={isFuji}
+          contract={evidenceRewardsContract}
+          onRegistered={refresh}
+        />
+
+        <PrivacySettings
+          address={account}
+          isFuji={isFuji}
+          contract={evidenceRewardsContract}
+          refreshKey={refreshKey}
+          onUpdated={refresh}
+        />
+
+        <EvidenceUpload
+          address={account}
+          isFuji={isFuji}
+          contract={evidenceRewardsContract}
+          refreshKey={refreshKey}
+          onSubmitted={refresh}
+        />
+
+        <RewardsPanel
+          address={account}
+          isFuji={isFuji}
+          contract={evidenceRewardsContract}
+          refreshKey={refreshKey}
+          onRefresh={refresh}
+        />
       </main>
     </div>
   );

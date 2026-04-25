@@ -6,7 +6,7 @@ async function main() {
   const [deployer] = await hre.ethers.getSigners();
   console.log("Deployer:", deployer.address);
 
-  const registerBondWei = process.env.REGISTER_BOND_WEI || hre.ethers.utils.parseEther("0.01").toString();
+  const registerBondWei = process.env.REGISTER_BOND_WEI || hre.ethers.utils.parseEther("0.0000001").toString();
   const treasury = process.env.TREASURY_ADDRESS || deployer.address;
   const reserveVault = process.env.RESERVE_VAULT_ADDRESS || deployer.address;
 

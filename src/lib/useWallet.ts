@@ -1,51 +1,162 @@
-import { useState, useCallback, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ethers } from "ethers";
 import {
-  connectWallet,
-  getContract,
-  getRiskContract,
-  getDataRewardsContract,
+  FUJI_CHAIN_ID,
+  FUJI_CONFIG,
+  getMockUsdcContract,
   getEvidenceRewardsContract,
-  RISK_MGMT_ADDRESS,
-  DATA_REWARDS_ADDRESS,
+  getCohortExchangeContract,
+  getRecoveryMissionsContract,
+  MOCK_USDC_ADDRESS,
   EVIDENCE_REWARDS_ADDRESS,
+  COHORT_EXCHANGE_ADDRESS,
+  RECOVERY_MISSIONS_ADDRESS,
 } from "./contract";
 
-export function useWallet() {
-  const [address, setAddress] = useState<string | null>(null);
-  const [signer, setSigner] = useState<ethers.Signer | null>(null);
-  const [loading, setLoading] = useState(false);
+declare global {
+  interface Window {
+    ethereum?: any;
+  }
+}
 
-  const connect = useCallback(async () => {
-    setLoading(true);
-    try {
-      const result = await connectWallet();
-      if (result) {
-        setAddress(result.address);
-        setSigner(result.signer);
-      }
-    } catch (err: any) {
-      console.error("Wallet connection failed:", err);
-      alert(err.message || "Failed to connect wallet");
-    } finally {
-      setLoading(false);
+export function useWallet() {
+  const [account, setAccount] = useState<string>("");
+  const [provider, setProvider] =
+    useState<ethers.providers.Web3Provider | null>(null);
+  const [signer, setSigner] = useState<ethers.Signer | null>(null);
+  const [chainId, setChainId] = useState<number | null>(null);
+
+  const syncWalletState = async (ethereum: any) => {
+    const web3Provider = new ethers.providers.Web3Provider(ethereum);
+    setProvider(web3Provider);
+
+    const network = await web3Provider.getNetwork();
+    setChainId(network.chainId);
+
+    const accounts = await web3Provider.listAccounts();
+    if (accounts.length > 0) {
+      setAccount(accounts[0]);
+      setSigner(web3Provider.getSigner());
+    } else {
+      setAccount("");
+      setSigner(null);
     }
+  };
+
+  useEffect(() => {
+    if (!window.ethereum) return;
+
+    syncWalletState(window.ethereum);
+
+    const handleAccountsChanged = async () => {
+      await syncWalletState(window.ethereum);
+    };
+
+    const handleChainChanged = async () => {
+      await syncWalletState(window.ethereum);
+    };
+
+    window.ethereum.on?.("accountsChanged", handleAccountsChanged);
+    window.ethereum.on?.("chainChanged", handleChainChanged);
+
+    return () => {
+      window.ethereum?.removeListener?.(
+        "accountsChanged",
+        handleAccountsChanged
+      );
+      window.ethereum?.removeListener?.("chainChanged", handleChainChanged);
+    };
   }, []);
 
-  // Three separate contract instances — never mix them
-  const userContract = useMemo(() => (signer ? getContract(signer) : null), [signer]);
-  const riskContract = useMemo(
-    () => (signer && RISK_MGMT_ADDRESS ? getRiskContract(signer, RISK_MGMT_ADDRESS) : null),
-    [signer],
-  );
-  const dataRewardsContract = useMemo(
-    () => (signer && DATA_REWARDS_ADDRESS ? getDataRewardsContract(signer, DATA_REWARDS_ADDRESS) : null),
-    [signer],
-  );
-  const evidenceContract = useMemo(
-    () => (signer && EVIDENCE_REWARDS_ADDRESS ? getEvidenceRewardsContract(signer, EVIDENCE_REWARDS_ADDRESS) : null),
-    [signer],
-  );
+  const switchToFuji = async () => {
+    if (!window.ethereum) throw new Error("MetaMask not found");
 
-  return { address, signer, userContract, riskContract, dataRewardsContract, evidenceContract, loading, connect };
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: FUJI_CONFIG.chainId }],
+      });
+    } catch (switchError: any) {
+      if (switchError?.code === 4902) {
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [FUJI_CONFIG],
+        });
+      } else {
+        throw switchError;
+      }
+    }
+
+    await syncWalletState(window.ethereum);
+  };
+
+  const connectWallet = async () => {
+    if (!window.ethereum) throw new Error("MetaMask not found");
+
+    await window.ethereum.request({ method: "eth_requestAccounts" });
+    await syncWalletState(window.ethereum);
+
+    const currentProvider = new ethers.providers.Web3Provider(window.ethereum);
+    const network = await currentProvider.getNetwork();
+
+    if (network.chainId !== FUJI_CHAIN_ID) {
+      await switchToFuji();
+    }
+  };
+
+  const isFuji = chainId === FUJI_CHAIN_ID;
+
+  const mockUsdcContract = useMemo(() => {
+    if (!signer || !MOCK_USDC_ADDRESS) return null;
+    try {
+      return getMockUsdcContract(signer);
+    } catch (error) {
+      console.error("mockUsdcContract init failed", error);
+      return null;
+    }
+  }, [signer]);
+
+  const evidenceRewardsContract = useMemo(() => {
+    if (!signer || !EVIDENCE_REWARDS_ADDRESS) return null;
+    try {
+      return getEvidenceRewardsContract(signer);
+    } catch (error) {
+      console.error("evidenceRewardsContract init failed", error);
+      return null;
+    }
+  }, [signer]);
+
+  const cohortExchangeContract = useMemo(() => {
+    if (!signer || !COHORT_EXCHANGE_ADDRESS) return null;
+    try {
+      return getCohortExchangeContract(signer);
+    } catch (error) {
+      console.error("cohortExchangeContract init failed", error);
+      return null;
+    }
+  }, [signer]);
+
+  const recoveryMissionsContract = useMemo(() => {
+    if (!signer || !RECOVERY_MISSIONS_ADDRESS) return null;
+    try {
+      return getRecoveryMissionsContract(signer);
+    } catch (error) {
+      console.error("recoveryMissionsContract init failed", error);
+      return null;
+    }
+  }, [signer]);
+
+  return {
+    account,
+    provider,
+    signer,
+    chainId,
+    isFuji,
+    connectWallet,
+    switchToFuji,
+    mockUsdcContract,
+    evidenceRewardsContract,
+    cohortExchangeContract,
+    recoveryMissionsContract,
+  };
 }

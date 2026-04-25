@@ -1,5 +1,17 @@
 import { ethers } from "ethers";
 
+import MockUSDCArtifact from "./abis/MockUSDC.json";
+import EvidenceRewardsArtifact from "./abis/EvidenceRewards.json";
+import CohortLicensingExchangeArtifact from "./abis/CohortLicensingExchange.json";
+import RecoveryMissionsArtifact from "./abis/RecoveryMissions.json";
+
+import {
+  MOCK_USDC_ADDRESS as GENERATED_MOCK_USDC_ADDRESS,
+  EVIDENCE_REWARDS_ADDRESS as GENERATED_EVIDENCE_REWARDS_ADDRESS,
+  COHORT_EXCHANGE_ADDRESS as GENERATED_COHORT_EXCHANGE_ADDRESS,
+  RECOVERY_MISSIONS_ADDRESS as GENERATED_RECOVERY_MISSIONS_ADDRESS,
+} from "./generated/fujiAddresses";
+
 // ─── Network Config ───────────────────────────────────────────────────────────
 export const FUJI_CHAIN_ID = 43113;
 export const FUJI_CHAIN_HEX = "0xa869";
@@ -14,14 +26,20 @@ export const FUJI_CONFIG = {
 };
 
 // ─── Contract Addresses ───────────────────────────────────────────────────────
-export const USER_MGMT_ADDRESS = "0x97DD4789ceF455A084d75ddC1E553aDC95D2a323";
-export const CONTRACT_ADDRESS = USER_MGMT_ADDRESS; // backward compat
-// Set these when RiskManagement & DataSharingAndRewards are deployed on Fuji
-export const RISK_MGMT_ADDRESS = ""; // e.g. "0x..." after deployment
-export const DATA_REWARDS_ADDRESS = ""; // e.g. "0x..." after deployment
-export const EVIDENCE_REWARDS_ADDRESS = ""; // e.g. "0x..." after deployment
+// 新 Fuji 合约地址：必须先本地导入，再本地 export，不能只做 re-export
+export const MOCK_USDC_ADDRESS = GENERATED_MOCK_USDC_ADDRESS;
+export const EVIDENCE_REWARDS_ADDRESS = GENERATED_EVIDENCE_REWARDS_ADDRESS;
+export const COHORT_EXCHANGE_ADDRESS = GENERATED_COHORT_EXCHANGE_ADDRESS;
+export const RECOVERY_MISSIONS_ADDRESS = GENERATED_RECOVERY_MISSIONS_ADDRESS;
 
-// ─── UserManagement ABI (8-param registerUser) ────────────────────────────────
+// 旧 MVP 合约地址
+export const USER_MGMT_ADDRESS = "0x97DD4789ceF455A084d75ddC1E553aDC95D2a323";
+export const CONTRACT_ADDRESS = USER_MGMT_ADDRESS;
+export const RISK_MGMT_ADDRESS = "";
+export const DATA_REWARDS_ADDRESS = "";
+export const DEPLOYER_ADDRESS = "0xf523f4a5fFc4C1fA4Aa75169754ffFcB51c34f81";
+
+// ─── UserManagement ABI (旧 MVP) ──────────────────────────────────────────────
 export const CONTRACT_ABI = [
   {
     inputs: [{ internalType: "address", name: "admin", type: "address" }],
@@ -87,7 +105,7 @@ export const CONTRACT_ABI = [
   },
 ];
 
-// ─── RiskManagement ABI (6-param submitRiskEvent) ─────────────────────────────
+// ─── RiskManagement ABI (旧 MVP) ──────────────────────────────────────────────
 export const RISK_MGMT_ABI = [
   {
     inputs: [
@@ -176,7 +194,7 @@ export const RISK_MGMT_ABI = [
   },
 ];
 
-// ─── DataSharingAndRewards ABI ────────────────────────────────────────────────
+// ─── DataSharingAndRewards ABI (旧 MVP) ───────────────────────────────────────
 export const DATA_REWARDS_ABI = [
   {
     inputs: [{ internalType: "address", name: "_user", type: "address" }],
@@ -229,8 +247,17 @@ export const DATA_REWARDS_ABI = [
   },
 ];
 
+// ─── New Monetization ABIs from Hardhat artifacts ─────────────────────────────
+const getAbi = (artifact: any) => artifact.abi ?? artifact;
+
+export const MOCK_USDC_ABI = getAbi(MockUSDCArtifact);
+export const EVIDENCE_REWARDS_ABI = getAbi(EvidenceRewardsArtifact);
+export const COHORT_EXCHANGE_ABI = getAbi(CohortLicensingExchangeArtifact);
+export const RECOVERY_MISSIONS_ABI = getAbi(RecoveryMissionsArtifact);
+
 // ─── Types ────────────────────────────────────────────────────────────────────
-type ContractWithMethods = ethers.Contract & Record<string, (...args: any[]) => Promise<any>>;
+type ContractWithMethods = ethers.Contract &
+  Record<string, (...args: any[]) => Promise<any>>;
 
 export type WalletConnection = {
   address: string;
@@ -247,8 +274,19 @@ export interface SymptomFlags {
 
 // ─── Mapping tables ───────────────────────────────────────────────────────────
 const riskCodeMap = { low: 0, medium: 1, high: 2 } as const;
-const surgeryCodeMap = { none: 0, external: 1, internal: 2, icl: 3, lasik: 4 } as const;
-const sharingCodeMap = { none: "None", research: "Research", healthcare: "Healthcare", public: "Public" } as const;
+const surgeryCodeMap = {
+  none: 0,
+  external: 1,
+  internal: 2,
+  icl: 3,
+  lasik: 4,
+} as const;
+const sharingCodeMap = {
+  none: "None",
+  research: "Research",
+  healthcare: "Healthcare",
+  public: "Public",
+} as const;
 
 // ─── Provider / Network helpers ───────────────────────────────────────────────
 const getEthereum = () => {
@@ -259,18 +297,26 @@ const getEthereum = () => {
 };
 
 export const getProvider = () => new ethers.providers.Web3Provider(getEthereum());
-export const isFujiChain = (chainId: number | string) => Number(chainId) === FUJI_CHAIN_ID;
 
-export const ensureFujiNetwork = async (provider: ethers.providers.Web3Provider) => {
+export const isFujiChain = (chainId: number | string) =>
+  Number(chainId) === FUJI_CHAIN_ID;
+
+export const ensureFujiNetwork = async (
+  provider: ethers.providers.Web3Provider
+) => {
   const network = await provider.getNetwork();
   if (!isFujiChain(network.chainId)) {
-    throw new Error("Please switch MetaMask to Avalanche Fuji (43113) / 请切换 MetaMask 到 Avalanche Fuji (43113)");
+    throw new Error(
+      "Please switch MetaMask to Avalanche Fuji (43113) / 请切换 MetaMask 到 Avalanche Fuji (43113)"
+    );
   }
   return network;
 };
 
-export const getExplorerLink = (type: "tx" | "address" | "block", hash: string) =>
-  `${FUJI_EXPLORER}/${type}/${hash}`;
+export const getExplorerLink = (
+  type: "tx" | "address" | "block",
+  hash: string
+) => `${FUJI_EXPLORER}/${type}/${hash}`;
 
 // ─── Wallet ───────────────────────────────────────────────────────────────────
 export const connectWallet = async (): Promise<WalletConnection> => {
@@ -283,114 +329,78 @@ export const connectWallet = async (): Promise<WalletConnection> => {
 };
 
 // ─── Contract Factories ───────────────────────────────────────────────────────
-export const getContract = (signerOrProvider?: ethers.Signer | ethers.providers.Provider | null) => {
+// 旧 MVP
+export const getContract = (
+  signerOrProvider?: ethers.Signer | ethers.providers.Provider | null
+) => {
   const connection = signerOrProvider ?? getProvider();
   return new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, connection);
 };
 
-export const getRiskContract = (signerOrProvider?: ethers.Signer | ethers.providers.Provider | null, address?: string) => {
+export const getRiskContract = (
+  signerOrProvider?: ethers.Signer | ethers.providers.Provider | null,
+  address = RISK_MGMT_ADDRESS
+) => {
   if (!address) return null;
   const connection = signerOrProvider ?? getProvider();
   return new ethers.Contract(address, RISK_MGMT_ABI, connection);
 };
 
-export const getDataRewardsContract = (signerOrProvider?: ethers.Signer | ethers.providers.Provider | null, address?: string) => {
+export const getDataRewardsContract = (
+  signerOrProvider?: ethers.Signer | ethers.providers.Provider | null,
+  address = DATA_REWARDS_ADDRESS
+) => {
   if (!address) return null;
   const connection = signerOrProvider ?? getProvider();
   return new ethers.Contract(address, DATA_REWARDS_ABI, connection);
 };
 
-// ─── EvidenceRewards ABI ──────────────────────────────────────────────────────
-export const EVIDENCE_REWARDS_ABI = [
-  {
-    inputs: [{ internalType: "uint8", name: "_privacy", type: "uint8" }],
-    name: "register",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "uint8", name: "_privacy", type: "uint8" }],
-    name: "setPrivacyMode",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "bytes32", name: "_contentHash", type: "bytes32" },
-      { internalType: "uint8", name: "_dataClass", type: "uint8" },
-      { internalType: "string", name: "_metadataURI", type: "string" },
-      { internalType: "bool", name: "_shareConsent", type: "bool" },
-    ],
-    name: "submitEvidence",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      { internalType: "uint256", name: "_evidenceId", type: "uint256" },
-      { internalType: "bool", name: "_approved", type: "bool" },
-      { internalType: "uint256", name: "_rewardWei", type: "uint256" },
-    ],
-    name: "appraiseEvidence",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "claim",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "refundBond",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "", type: "address" }],
-    name: "contributors",
-    outputs: [
-      { internalType: "bool", name: "registered", type: "bool" },
-      { internalType: "uint8", name: "privacy", type: "uint8" },
-      { internalType: "uint256", name: "bondDeposit", type: "uint256" },
-      { internalType: "uint256", name: "claimableReward", type: "uint256" },
-      { internalType: "uint256", name: "totalClaimed", type: "uint256" },
-      { internalType: "uint256", name: "registeredAt", type: "uint256" },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "_user", type: "address" }],
-    name: "getUserEvidenceIds",
-    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [{ internalType: "address", name: "_user", type: "address" }],
-    name: "getUserEvidenceCount",
-    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-    stateMutability: "view",
-    type: "function",
-  },
-];
+// 新 Monetization
+export function getMockUsdcContract(
+  providerOrSigner: ethers.Signer | ethers.providers.Provider
+) {
+  return new ethers.Contract(
+    MOCK_USDC_ADDRESS,
+    MOCK_USDC_ABI,
+    providerOrSigner
+  );
+}
 
-export const getEvidenceRewardsContract = (signerOrProvider?: ethers.Signer | ethers.providers.Provider | null, address?: string) => {
-  if (!address) return null;
-  const connection = signerOrProvider ?? getProvider();
-  return new ethers.Contract(address, EVIDENCE_REWARDS_ABI, connection);
-};
+export function getEvidenceRewardsContract(
+  providerOrSigner: ethers.Signer | ethers.providers.Provider
+) {
+  return new ethers.Contract(
+    EVIDENCE_REWARDS_ADDRESS,
+    EVIDENCE_REWARDS_ABI,
+    providerOrSigner
+  );
+}
+
+export function getCohortExchangeContract(
+  providerOrSigner: ethers.Signer | ethers.providers.Provider
+) {
+  return new ethers.Contract(
+    COHORT_EXCHANGE_ADDRESS,
+    COHORT_EXCHANGE_ABI,
+    providerOrSigner
+  );
+}
+
+export function getRecoveryMissionsContract(
+  providerOrSigner: ethers.Signer | ethers.providers.Provider
+) {
+  return new ethers.Contract(
+    RECOVERY_MISSIONS_ADDRESS,
+    RECOVERY_MISSIONS_ABI,
+    providerOrSigner
+  );
+}
 
 // ─── Display helpers ──────────────────────────────────────────────────────────
-export const shortenAddress = (address: string | null | undefined, visible = 4) => {
+export const shortenAddress = (
+  address: string | null | undefined,
+  visible = 4
+) => {
   if (!address) return "";
   return `${address.slice(0, visible + 2)}...${address.slice(-visible)}`;
 };
@@ -439,7 +449,8 @@ export const sharingLevelToText = (value: string) => {
   return sharingCodeMap.none;
 };
 
-export const sharingLevelToBytes32 = (value: string) => ethers.utils.formatBytes32String(sharingLevelToText(value));
+export const sharingLevelToBytes32 = (value: string) =>
+  ethers.utils.formatBytes32String(sharingLevelToText(value));
 
 export const bytes32ToText = (value: string) => {
   try {
@@ -458,8 +469,12 @@ export const dataSharingLabel = (value: string) => {
 };
 
 // ─── Symptom flag encoding ────────────────────────────────────────────────────
-export const symptomsToFlag = (floaters: boolean, flashes: boolean, pain: boolean, visionLoss: boolean) =>
-  (floaters ? 1 : 0) + (flashes ? 2 : 0) + (pain ? 4 : 0) + (visionLoss ? 8 : 0);
+export const symptomsToFlag = (
+  floaters: boolean,
+  flashes: boolean,
+  pain: boolean,
+  visionLoss: boolean
+) => (floaters ? 1 : 0) + (flashes ? 2 : 0) + (pain ? 4 : 0) + (visionLoss ? 8 : 0);
 
 export const flagToSymptoms = (flag: number): SymptomFlags => ({
   floaters: Boolean(flag & 1),
@@ -469,31 +484,55 @@ export const flagToSymptoms = (flag: number): SymptomFlags => ({
 });
 
 // ─── Contract method guards ───────────────────────────────────────────────────
-export const hasContractMethod = (contract: ethers.Contract | null, methodName: string) =>
-  Boolean(contract && typeof (contract as Record<string, unknown>)[methodName] === "function");
+export const hasContractMethod = (
+  contract: ethers.Contract | null,
+  methodName: string
+) => Boolean(contract && typeof (contract as Record<string, unknown>)[methodName] === "function");
 
-export const ensureContractMethod = (contract: ethers.Contract | null, methodName: string, featureName?: string): ContractWithMethods => {
+export const ensureContractMethod = (
+  contract: ethers.Contract | null,
+  methodName: string,
+  featureName?: string
+): ContractWithMethods => {
   if (!hasContractMethod(contract, methodName)) {
-    throw new Error(`${featureName ?? methodName} is not available in the current deployed contract / 当前已部署合约不支持该功能`);
+    throw new Error(
+      `${featureName ?? methodName} is not available in the current deployed contract / 当前已部署合约不支持该功能`
+    );
   }
   return contract as ContractWithMethods;
 };
 
-// ─── High-level operations ────────────────────────────────────────────────────
+// ─── High-level operations (旧 MVP 注册逻辑保留) ──────────────────────────────
 export const registerUser = async (
-  score: number, risk: number, detachment: boolean, holes: boolean,
-  postOp: boolean, surgType: number, laserCount: number, sharingLevel: string,
-  signer?: ethers.Signer,
+  score: number,
+  risk: number,
+  detachment: boolean,
+  holes: boolean,
+  postOp: boolean,
+  surgType: number,
+  laserCount: number,
+  sharingLevel: string,
+  signer?: ethers.Signer
 ) => {
   const activeSigner = signer ?? (await connectWallet()).signer;
-  const contract = ensureContractMethod(getContract(activeSigner), "registerUser", "Register");
-  const tx = await contract.registerUser(
-    clampUint8(score, 0, 100), clampUint8(risk), detachment, holes,
-    postOp, clampUint8(surgType), clampUint8(laserCount), sharingLevelToBytes32(sharingLevel),
+  const contract = ensureContractMethod(
+    getContract(activeSigner),
+    "registerUser",
+    "Register"
   );
-  console.log("Transaction sent:", tx.hash);
+
+  const tx = await contract.registerUser(
+    clampUint8(score, 0, 100),
+    clampUint8(risk),
+    detachment,
+    holes,
+    postOp,
+    clampUint8(surgType),
+    clampUint8(laserCount),
+    sharingLevelToBytes32(sharingLevel)
+  );
+
   const receipt = await tx.wait();
-  console.log("Transaction confirmed:", receipt);
   return receipt;
 };
 
@@ -504,6 +543,10 @@ export const getTotalUsers = async () => {
 };
 
 export const fetchUserProfile = async (address: string) => {
-  const contract = ensureContractMethod(getContract(), "getUserProfile", "Get User Profile");
+  const contract = ensureContractMethod(
+    getContract(),
+    "getUserProfile",
+    "Get User Profile"
+  );
   return contract.getUserProfile(address);
 };

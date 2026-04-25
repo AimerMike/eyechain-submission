@@ -1,195 +1,205 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ethers } from "ethers";
-import DashboardPanel from "./DashboardPanel";
-import {
-  FUJI_CHAIN_ID,
-  FUJI_EXPLORER,
-  baselineRiskToCode,
-  clampUint8,
-  ensureContractMethod,
-  hasContractMethod,
-  sharingLevelToBytes32,
-  surgeryTypeToCode,
-} from "@/lib/contract";
 
 interface Props {
   contract: ethers.Contract | null;
-  address: string | null;
+  address: string;
+  isFuji: boolean;
+  onRegistered?: () => void;
 }
 
-const riskOptions = [
-  { value: "Low", label: "Low", labelCn: "低" },
-  { value: "Medium", label: "Medium", labelCn: "中" },
-  { value: "High", label: "High", labelCn: "高" },
+const PRIVACY_OPTIONS = [
+  { value: 0, label: "Private 完全私密" },
+  { value: 1, label: "Open 默认共享" },
+  { value: 2, label: "Negotiable 每次询问" },
 ];
 
-const surgeryOptions = [
-  { value: "None", label: "None", labelCn: "无" },
-  { value: "External", label: "External", labelCn: "外路" },
-  { value: "Internal", label: "Internal", labelCn: "内路" },
-  { value: "ICL", label: "ICL", labelCn: "晶体植入" },
-  { value: "LASIK", label: "LASIK", labelCn: "激光角膜手术" },
-];
+const SAFE_DEFAULT_BOND_WEI = "100000000000";
 
-const sharingOptions = [
-  { value: "None", label: "None", labelCn: "无" },
-  { value: "Research", label: "Research", labelCn: "研究" },
-  { value: "Healthcare", label: "Healthcare", labelCn: "医疗" },
-  { value: "Public", label: "Public", labelCn: "公开" },
-];
-
-export default function UserRegistration({ contract, address }: Props) {
-  const [vulnScore, setVulnScore] = useState(50);
-  const [baselineRisk, setBaselineRisk] = useState("Medium");
-  const [hasDetachment, setHasDetachment] = useState(false);
-  const [hasHoles, setHasHoles] = useState(false);
-  const [surgeryInfo, setSurgeryInfo] = useState("None");
-  const [laserCount, setLaserCount] = useState(0);
-  const [sharingLevel, setSharingLevel] = useState("None");
-  const [txHash, setTxHash] = useState("");
-  const [statusMessage, setStatusMessage] = useState("");
+export default function UserRegistration({
+  contract,
+  address,
+  isFuji,
+  onRegistered,
+}: Props) {
+  const [privacyMode, setPrivacyMode] = useState(2);
+  const [bondWei, setBondWei] = useState<string>(SAFE_DEFAULT_BOND_WEI);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
+  const [txHash, setTxHash] = useState("");
 
-  const registerSupported = hasContractMethod(contract, "registerUser");
+  useEffect(() => {
+    const loadBond = async () => {
+      setBondWei(SAFE_DEFAULT_BOND_WEI);
 
-  const handleRegister = async () => {
-    if (!contract || !address) return alert("Connect wallet first / 请先连接钱包");
-
-    setLoading(true);
-    setStatusMessage("");
-    setTxHash("");
-
-    try {
-      const currentContract = ensureContractMethod(contract, "registerUser", "Register");
-      const network = await contract.provider.getNetwork();
-
-      if (Number(network.chainId) !== FUJI_CHAIN_ID) {
-        throw new Error("Please switch MetaMask to Avalanche Fuji (43113) / 请切换 MetaMask 到 Avalanche Fuji (43113)");
+      if (!contract) {
+        setMessage("Contract not ready yet / 合约实例尚未就绪");
+        return;
       }
 
-      if (hasContractMethod(contract, "registeredUsers")) {
-        const alreadyRegistered = await (contract as any).registeredUsers(address);
-        if (alreadyRegistered) {
-          throw new Error("This wallet is already registered / 当前钱包地址已注册");
+      try {
+        if (typeof (contract as any).registerBondWei === "function") {
+          const v = await (contract as any).registerBondWei();
+          const value = v?.toString?.() || SAFE_DEFAULT_BOND_WEI;
+          setBondWei(value);
+        } else {
+          setMessage("registerBondWei() not found / 合约缺少 registerBondWei()");
+        }
+      } catch (err: any) {
+        setBondWei(SAFE_DEFAULT_BOND_WEI);
+        setMessage(
+          err?.reason ||
+            err?.data?.message ||
+            err?.message ||
+            "Failed to read bond from contract / 读取保证金失败"
+        );
+      }
+    };
+
+    loadBond();
+  }, [contract]);
+
+  const handleRegister = async () => {
+    setMessage("");
+    setTxHash("");
+
+    if (!address) {
+      setMessage("Please connect wallet first / 请先连接钱包");
+      return;
+    }
+
+    if (!isFuji) {
+      setMessage("Please switch to Avalanche Fuji / 请切换到 Avalanche Fuji");
+      return;
+    }
+
+    if (!contract) {
+      setMessage(
+        "EvidenceRewards contract is null in frontend / 前端里的 EvidenceRewards 合约实例是 null"
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (typeof (contract as any).contributors === "function") {
+        const contributor = await (contract as any).contributors(address);
+        if (contributor?.registered) {
+          setMessage("This wallet is already registered / 当前钱包已注册");
+          setLoading(false);
+          return;
         }
       }
 
-      const surgeryType = surgeryTypeToCode(surgeryInfo);
-      const tx = await currentContract.registerUser(
-        clampUint8(vulnScore, 0, 100),
-        baselineRiskToCode(baselineRisk),
-        hasDetachment,
-        hasHoles,
-        surgeryType !== 0,
-        surgeryType,
-        clampUint8(laserCount),
-        sharingLevelToBytes32(sharingLevel),
-      );
+      if (typeof (contract as any).register !== "function") {
+        throw new Error("register() not found on current contract");
+      }
+
+      const tx = await (contract as any).register(privacyMode, {
+        value: bondWei,
+      });
 
       setTxHash(tx.hash);
-      setStatusMessage("Registration submitted successfully / 注册交易已提交");
+      setMessage("Registration submitted / 注册交易已提交");
       await tx.wait();
-      setStatusMessage("Registration successful! / 注册成功！");
-      alert("Registration successful! / 注册成功！");
+      setMessage("Registration successful / 注册成功");
+      onRegistered?.();
     } catch (err: any) {
-      console.error(err);
-      const message = err.reason || err.data?.message || err.message || "Registration failed / 注册失败";
-      setStatusMessage(message);
-      alert(message);
+      const msg =
+        err?.reason ||
+        err?.data?.message ||
+        err?.message ||
+        "Registration failed / 注册失败";
+      setMessage(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const selectClass = "w-full bg-muted border border-border rounded-lg px-4 py-2.5 text-foreground font-body focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary";
-  const inputClass = selectClass;
-  const labelClass = "block font-mono text-xs text-muted-foreground tracking-wider uppercase mb-1.5";
-  const checkLabelClass = "flex items-start gap-3 text-sm text-foreground cursor-pointer";
-  const checkboxClass = "mt-0.5 w-4 h-4 accent-cyan rounded";
+  const contractReady = !!contract;
 
   return (
-    <DashboardPanel title="User Registration" titleCn="用户注册" tag="01 · Register 注册" tagColor="cyan">
-      {!registerSupported && address && (
-        <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
-          <p className="font-mono text-xs text-destructive">Current deployed contract ABI does not expose registerUser<br/>当前已部署合约 ABI 未暴露 registerUser 函数</p>
-        </div>
-      )}
+    <section className="rounded-2xl border border-border bg-card p-5">
+      <p className="font-mono text-xs text-muted-foreground tracking-widest uppercase">
+        01 · Register 注册
+      </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={labelClass}>Vulnerability Score (0-100)<br/>脆弱性评分 (0-100)</label>
-          <input type="number" min={0} max={100} value={vulnScore} onChange={e => setVulnScore(Number(e.target.value))} className={inputClass} />
-        </div>
+      <h2 className="font-heading text-2xl mt-2">Contributor Registration</h2>
 
-        <div>
-          <label className={labelClass}>Baseline Risk<br/>基线风险</label>
-          <select value={baselineRisk} onChange={e => setBaselineRisk(e.target.value)} className={selectClass}>
-            {riskOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label} {option.labelCn}</option>
-            ))}
-          </select>
-        </div>
+      <p className="text-sm text-muted-foreground mt-2">
+        新注册走 Fuji 上的 EvidenceRewards.register(privacyMode)。
+        需要支付参与保证金。
+      </p>
 
-        <div className="md:col-span-2">
-          <label className={labelClass}>Retinal Conditions<br/>视网膜情况</label>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-lg border border-border bg-muted p-4">
-            <label className={checkLabelClass}>
-              <input type="checkbox" checked={hasDetachment} onChange={e => setHasDetachment(e.target.checked)} className={checkboxClass} />
-              <span>
-                <span className="block">Retinal Detachment</span>
-                <span className="block text-xs text-muted-foreground">视网膜脱离</span>
-              </span>
-            </label>
-            <label className={checkLabelClass}>
-              <input type="checkbox" checked={hasHoles} onChange={e => setHasHoles(e.target.checked)} className={checkboxClass} />
-              <span>
-                <span className="block">Retinal Holes</span>
-                <span className="block text-xs text-muted-foreground">视网膜裂孔</span>
-              </span>
-            </label>
-          </div>
-        </div>
-
-        <div>
-          <label className={labelClass}>Surgery Type<br/>手术类型</label>
-          <select value={surgeryInfo} onChange={e => setSurgeryInfo(e.target.value)} className={selectClass}>
-            {surgeryOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label} {option.labelCn}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className={labelClass}>Laser Treatment Count<br/>激光治疗次数</label>
-          <input type="number" min={0} max={255} value={laserCount} onChange={e => setLaserCount(Number(e.target.value))} className={inputClass} />
-        </div>
-
-        <div className="md:col-span-2">
-          <label className={labelClass}>Data Sharing Level<br/>数据共享级别</label>
-          <select value={sharingLevel} onChange={e => setSharingLevel(e.target.value)} className={selectClass}>
-            {sharingOptions.map(option => (
-              <option key={option.value} value={option.value}>{option.label} {option.labelCn}</option>
-            ))}
-          </select>
-        </div>
+      <div className="mt-4 rounded-xl border border-border bg-muted/40 p-4">
+        <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">
+          Frontend Readiness 前端状态
+        </p>
+        <p className="font-mono text-sm mt-2">
+          Wallet: {address ? "Connected 已连接" : "Not connected 未连接"}
+        </p>
+        <p className="font-mono text-sm mt-1">
+          Network: {isFuji ? "Fuji 已连接" : "Not on Fuji 非 Fuji"}
+        </p>
+        <p className="font-mono text-sm mt-1">
+          Contract: {contractReady ? "Ready 已就绪" : "Null 未就绪"}
+        </p>
       </div>
 
-      {statusMessage && (
-        <div className="mt-4 p-3 bg-muted rounded-lg">
-          <p className="font-mono text-xs text-muted-foreground break-words">{statusMessage}</p>
+      <div className="mt-5 space-y-4">
+        <div>
+          <label className="block font-mono text-xs text-muted-foreground tracking-wider uppercase mb-2">
+            Privacy Mode 隐私模式
+          </label>
+          <select
+            value={privacyMode}
+            onChange={(e) => setPrivacyMode(Number(e.target.value))}
+            className="w-full rounded-lg border border-border bg-muted px-4 py-3"
+          >
+            {PRIVACY_OPTIONS.map((item) => (
+              <option key={item.value} value={item.value}>
+                {item.label}
+              </option>
+            ))}
+          </select>
         </div>
-      )}
 
-      <button onClick={handleRegister} disabled={loading || !address || !registerSupported} className="mt-5 w-full py-3 rounded-lg font-mono text-sm tracking-wider uppercase border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-50">
-        {loading ? "Submitting... 提交中..." : "Register on Blockchain 注册上链"}
-      </button>
-
-      {txHash && (
-        <div className="mt-3 p-3 bg-muted rounded-lg">
-          <p className="font-mono text-xs text-muted-foreground">TX Hash 交易哈希:</p>
-          <a href={`${FUJI_EXPLORER}/tx/${txHash}`} target="_blank" rel="noreferrer" className="font-mono text-xs text-primary break-all hover:underline">{txHash}</a>
+        <div className="rounded-xl border border-border bg-muted/40 p-4">
+          <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">
+            Registration Bond 注册保证金
+          </p>
+          <p className="font-mono text-sm mt-2 break-all">{bondWei} wei</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            预计约 {Number(ethers.utils.formatEther(bondWei)).toFixed(7)} AVAX
+          </p>
         </div>
-      )}
-    </DashboardPanel>
+
+        <button
+          onClick={handleRegister}
+          disabled={loading}
+          className="w-full py-3 rounded-lg font-mono text-sm tracking-widest uppercase border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-all disabled:opacity-50"
+        >
+          {loading ? "Registering... 注册中..." : "Register on Fuji 在 Fuji 注册"}
+        </button>
+
+        {message && (
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <p className="font-mono text-xs break-words whitespace-pre-wrap">
+              {message}
+            </p>
+          </div>
+        )}
+
+        {txHash && (
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <p className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">
+              TX HASH
+            </p>
+            <p className="font-mono text-xs break-all mt-2">{txHash}</p>
+          </div>
+        )}
+      </div>
+    </section>
   );
 }

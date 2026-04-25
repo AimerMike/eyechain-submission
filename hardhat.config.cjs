@@ -25,6 +25,10 @@ module.exports = {
   },
   networks: {
     hardhat: {},
+    localhost: {
+      url: "http://127.0.0.1:8545",
+      chainId: 31337,
+    },
     fuji: {
       url: FUJI_RPC_URL,
       chainId: 43113,
