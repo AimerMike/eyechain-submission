@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useWallet } from "@/lib/useWallet";
-import { shortenAddress } from "@/lib/contract";
-import SystemBanner from "@/components/SystemBanner";
-import FrontendReadiness from "@/components/FrontendReadiness";
-import UserRegistration from "@/components/UserRegistration";
-import PrivacySettings from "@/components/PrivacySettings";
 import EvidenceUpload from "@/components/EvidenceUpload";
+import FrontendReadiness from "@/components/FrontendReadiness";
+import MainActionRail from "@/components/MainActionRail";
+import MainModuleGrid from "@/components/MainModuleGrid";
+import PrivacySettings from "@/components/PrivacySettings";
 import RewardsPanel from "@/components/RewardsPanel";
+import SystemBanner from "@/components/SystemBanner";
+import UserRegistration from "@/components/UserRegistration";
+import { useWallet } from "@/lib/useWallet";
 
 export default function Index() {
   const {
@@ -21,128 +22,138 @@ export default function Index() {
 
   const [refreshKey, setRefreshKey] = useState(0);
 
-  const refresh = () => setRefreshKey((v) => v + 1);
+  const refresh = () => setRefreshKey((value) => value + 1);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div>
-            <p className="font-heading text-2xl tracking-wider">EYECHAIN</p>
-            <p className="font-mono text-xs text-muted-foreground tracking-widest">
-              Fuji M1 Contributor Flow · 注册 / 上传 / 奖励
-            </p>
-          </div>
+    <div
+      className="min-h-screen text-white"
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at top left, rgba(34,211,238,0.14), transparent 22%), radial-gradient(circle at top right, rgba(56,189,248,0.12), transparent 18%), linear-gradient(180deg, #020617 0%, #06101d 44%, #0b1f35 100%)",
+      }}
+    >
+      <MainActionRail
+        account={account}
+        chainId={chainId}
+        isFuji={isFuji}
+        onConnect={connectWallet}
+        onSwitchNetwork={switchToFuji}
+      />
 
-          <div className="flex items-center gap-2 flex-wrap justify-end">
-            <Link
-              to="/m2"
-              className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap"
-            >
-              M2 Cohort
-            </Link>
-
-            <Link
-              to="/m3"
-              className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap"
-            >
-              M3 Missions
-            </Link>
-
-            <Link
-              to="/rework"
-              className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap"
-            >
-              Rework V2
-            </Link>
-
-            <Link
-              to="/legacy"
-              className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground hover:border-primary hover:text-primary transition-all whitespace-nowrap"
-            >
-              Legacy Dashboard
-            </Link>
-
-            <div className="text-right min-w-[88px]">
-              <p className="font-mono text-[10px] text-muted-foreground tracking-widest">
-                NETWORK
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6">
+        <section className="rounded-[34px] border border-cyan-300/15 bg-slate-950/55 px-6 py-6 shadow-[0_20px_80px_rgba(3,10,24,0.35)] backdrop-blur md:px-8 md:py-8">
+          <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-3xl">
+              <p className="text-[11px] uppercase tracking-[0.35em] text-cyan-100/65">
+                Protocol status
               </p>
-              <p
-                className={`font-mono text-xs ${
-                  isFuji ? "text-primary" : "text-destructive"
-                }`}
-              >
-                {chainId ? `Chain ${chainId}` : "Not connected"}
+              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white md:text-6xl">
+                Contributor Appraisal MVP
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-300 md:text-lg">
+                Start with contribution and evidence. Move into cohort licensing and
+                recovery missions when the record is ready.
               </p>
             </div>
 
-            {!account ? (
-              <button
-                onClick={connectWallet}
-                className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20 transition-all whitespace-nowrap"
-              >
-                Connect Wallet
-              </button>
-            ) : !isFuji ? (
-              <div className="flex items-center gap-2">
-                <div className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-border text-muted-foreground whitespace-nowrap">
-                  {shortenAddress(account)}
-                </div>
-                <button
-                  onClick={switchToFuji}
-                  className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-destructive/50 bg-destructive/10 text-destructive hover:bg-destructive/20 transition-all whitespace-nowrap"
-                >
-                  Switch to Fuji
-                </button>
+            <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[520px]">
+              <div className="rounded-2xl border border-cyan-300/15 bg-slate-900/60 p-4">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">
+                  Phase
+                </p>
+                <p className="mt-3 text-lg text-white">M1 live wiring</p>
               </div>
-            ) : (
-              <div className="px-4 py-2 rounded-lg font-mono text-xs tracking-widest uppercase border border-primary/50 bg-primary/10 text-primary whitespace-nowrap">
-                {shortenAddress(account)}
+
+              <div className="rounded-2xl border border-cyan-300/15 bg-slate-900/60 p-4">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">
+                  Network
+                </p>
+                <p className="mt-3 text-lg text-white">Avalanche Fuji</p>
               </div>
-            )}
+
+              <div className="rounded-2xl border border-cyan-300/15 bg-slate-900/60 p-4">
+                <p className="text-[10px] uppercase tracking-[0.28em] text-slate-400">
+                  Next
+                </p>
+                <p className="mt-3 text-lg text-white">M2 / M3 expansion</p>
+              </div>
+            </div>
           </div>
-        </div>
-      </nav>
+        </section>
 
-      <main className="max-w-5xl mx-auto px-4 py-8 space-y-6">
-        <SystemBanner />
+        <MainModuleGrid account={account} isFuji={isFuji} />
 
-        <FrontendReadiness
-          address={account}
-          isFuji={isFuji}
-          contract={evidenceRewardsContract}
-        />
+        <section
+          id="m1-live"
+          className="rounded-[32px] border border-cyan-300/15 bg-slate-950/55 p-5 shadow-[0_20px_70px_rgba(3,10,24,0.35)] backdrop-blur"
+        >
+          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.35em] text-cyan-100/65">
+                M1 live
+              </p>
+              <h2 className="mt-2 text-3xl font-semibold tracking-tight text-white">
+                Register, submit, and track reward
+              </h2>
+            </div>
 
-        <UserRegistration
-          address={account}
-          isFuji={isFuji}
-          contract={evidenceRewardsContract}
-          onRegistered={refresh}
-        />
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/m2"
+                className="rounded-2xl border border-cyan-300/25 bg-cyan-400/5 px-4 py-2.5 text-sm text-cyan-100 transition hover:bg-cyan-400/10"
+              >
+                Open M2
+              </Link>
+              <Link
+                to="/m3"
+                className="rounded-2xl border border-cyan-300/25 bg-cyan-400/5 px-4 py-2.5 text-sm text-cyan-100 transition hover:bg-cyan-400/10"
+              >
+                Open M3
+              </Link>
+            </div>
+          </div>
 
-        <PrivacySettings
-          address={account}
-          isFuji={isFuji}
-          contract={evidenceRewardsContract}
-          refreshKey={refreshKey}
-          onUpdated={refresh}
-        />
+          <div className="space-y-6">
+            <SystemBanner />
 
-        <EvidenceUpload
-          address={account}
-          isFuji={isFuji}
-          contract={evidenceRewardsContract}
-          refreshKey={refreshKey}
-          onSubmitted={refresh}
-        />
+            <FrontendReadiness
+              address={account}
+              isFuji={isFuji}
+              contract={evidenceRewardsContract}
+            />
 
-        <RewardsPanel
-          address={account}
-          isFuji={isFuji}
-          contract={evidenceRewardsContract}
-          refreshKey={refreshKey}
-          onRefresh={refresh}
-        />
+            <UserRegistration
+              address={account}
+              isFuji={isFuji}
+              contract={evidenceRewardsContract}
+              onRegistered={refresh}
+            />
+
+            <PrivacySettings
+              address={account}
+              isFuji={isFuji}
+              contract={evidenceRewardsContract}
+              refreshKey={refreshKey}
+              onUpdated={refresh}
+            />
+
+            <EvidenceUpload
+              address={account}
+              isFuji={isFuji}
+              contract={evidenceRewardsContract}
+              refreshKey={refreshKey}
+              onSubmitted={refresh}
+            />
+
+            <RewardsPanel
+              address={account}
+              isFuji={isFuji}
+              contract={evidenceRewardsContract}
+              refreshKey={refreshKey}
+              onRefresh={refresh}
+            />
+          </div>
+        </section>
       </main>
     </div>
   );

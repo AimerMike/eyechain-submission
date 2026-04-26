@@ -27,3 +27,30 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets / private keys
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+private.key
+private-key.txt
+secret.txt
+secrets.json
+mnemonic.txt
+wallet.json
+
+# Local config
+node_modules/
+dist/
+build/
+.cache/
+.DS_Store
+
+# Hardhat / Foundry local artifacts
+cache/
+out/
+broadcast/
