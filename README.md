@@ -6,7 +6,7 @@ web3 hackathon
 # EyeChain: Blockchain-Based Vision Risk Monitoring & Collaboration Network
 # 去中心化视觉风险智能协议
 
-[Live Demo 演示地址](https://eyechain-pulse.lovable.app/) | [Contract (Avalanche Fuji)](https://testnet.snowtrace.io/)
+[Live Demo 演示地址](https://eyechain.vercel.app/) | [Contract (Avalanche Fuji)](https://testnet.snowtrace.io/)
 
 
 ## 🌟 Project Overview
